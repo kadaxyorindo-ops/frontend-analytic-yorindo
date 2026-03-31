@@ -22,7 +22,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar Overlay */}
       <aside 
-        className={`w-[260px] bg-[#faf8ff] flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`w-[260px] bg-background flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >

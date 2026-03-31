@@ -15,6 +15,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { CreateEvent } from "@/components/Create-event";
+
 
 const dummyEvents = [
   { id: 1, date: "Oct 12, 2026", name: "Global Innovation Summit 2026", location: "San Francisco, CA" },
@@ -31,7 +33,7 @@ export function Events() {
             <h1 className="text-3xl font-bold">Events</h1>
             <p className="text-gray-500">Orchestrate your upcoming experiences.</p>
           </div>
-          <Button className="bg-[#1a40a8] hover:bg-blue-800">+ Create Event</Button>
+          <CreateEvent />
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
