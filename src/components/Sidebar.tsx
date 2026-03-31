@@ -22,7 +22,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar Overlay */}
       <aside 
-        className={`w-[260px] bg-background flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`w-[260px] bg-sidebar flex flex-col fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
         }`}
       >
@@ -41,38 +41,38 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link 
             to="/events" 
             onClick={onClose}
-            className={`h-12 flex items-center px-4 font-mono text-sm transition-colors ${
+            className={`h-12 font-semibold flex items-center px-4 font-mono text-sm transition-colors ${
               isActive('/events') 
-                ? 'bg-[#eaedff] border-slate-400 text-slate-700' 
-                : 'border-slate-300 text-slate-400 hover:bg-[#eaedff]'
+                ? 'bg-[#eaedff] border-slate-400 text-[#002a85]' 
+                : 'border-slate-300 text-slate-600 hover:bg-[#eaedff] hover:translate-x-1'
             }`}
           >
-            <CalendarDays className={`mr-3 h-5 w-5 ${isActive('/events') ? 'text-slate-700' : ''}`} />
+            <CalendarDays className={`mr-3 h-5 w-5 ${isActive('/events') ? 'text-[#002a85]' : ''}`} />
             Event List
           </Link>
 
           <Link 
             to="/communication" 
             onClick={onClose}
-            className={`h-12 hover:bg-[#eaedff] flex items-center px-4 font-mono text-sm transition-colors ${
+            className={`h-12 font-semibold flex items-center px-4 font-mono text-sm transition-colors ${
               isActive('/communication') 
-                ? 'bg-[#eaedff] border-slate-400 text-slate-700' 
-                : 'border-slate-300 text-slate-400'
+                ? 'bg-[#eaedff] border-slate-400 text-[#002a85]'  
+                : 'text-slate-600 hover:bg-[#eaedff] hover:translate-x-1'
             }`}
           >
-            <Mail className={`mr-3 h-5 w-5 ${isActive('/communication') ? 'text-slate-700' : ''}`} />
+            <Mail className={`mr-3 h-5 w-5 ${isActive('/communication') ? 'text-[#002a85]' : ''}`} />
             Communication
           </Link>
           <Link 
             to="/settings" 
             onClick={onClose}
-            className={`h-12 flex items-center px-4 font-mono text-sm transition-colors ${
+            className={`h-12 font-semibold flex items-center px-4 font-mono text-sm transition-colors ${
               isActive('/settings') 
-                ? 'bg-[#eaedff] border-slate-400 text-slate-700' 
-                : 'border-slate-300 text-slate-400 hover:bg-[#eaedff]'
+                ? 'bg-[#eaedff] border-slate-400 text-[#002a85]' 
+                : 'text-slate-600 hover:bg-[#eaedff] hover:translate-x-1'
             }`}
           >
-            <Settings className={`mr-3 h-5 w-5 ${isActive('/settings') ? 'text-slate-700' : ''}`} />
+            <Settings className={`mr-3 h-5 w-5 ${isActive('/settings') ? 'text-[#002a85]' : ''}`} />
             Settings
           </Link>
         </nav>

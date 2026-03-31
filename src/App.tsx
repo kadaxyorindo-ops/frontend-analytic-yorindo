@@ -4,6 +4,7 @@ import { Events } from "@/pages/events/Events";
 import { Communication } from "@/pages/communication/Communication";
 import { Settings } from "@/pages/settings/Settings";
 import { NotFound } from "@/pages/NotFound";
+import {Participants} from "@/components/Participant";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/communication" element={<Communication />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/participants" element={<Participants />} />
         
         {/* Catch-all route for undefined paths */}
         <Route path="*" element={<NotFound />} />

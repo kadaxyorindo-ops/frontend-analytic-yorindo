@@ -20,7 +20,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
   };
 
   return (
-    <header className="h-20 bg-white px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
+    <header className="h-20 bg-white shadow-sm px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
       <div className="flex items-center gap-4 w-full max-w-md">
         {/* Hamburger Menu Button */}
         <button 
