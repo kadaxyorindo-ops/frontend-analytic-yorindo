@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CreateEvent } from "@/components/Create-event";
+import { EventDialog } from "@/components/Event-dialog";
 
 
 const dummyEvents = [
@@ -33,7 +33,7 @@ export function Events() {
             <h1 className="text-3xl font-bold">Events</h1>
             <p className="text-gray-500">Orchestrate your upcoming experiences.</p>
           </div>
-          <CreateEvent />
+          <EventDialog mode="create" />
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -81,7 +81,15 @@ export function Events() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="cursor-pointer">Edit Event</DropdownMenuItem>
+                        <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                            <EventDialog mode="edit" defaultData={{
+                              name: event.name,
+                              date: event.date,
+                              time: "10:00", // Placeholder time, as it's not in the dummy data
+                              location: event.location,
+                              description: "Event description", // Placeholder description
+                            }} />
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer">Manage Participant</DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer">
                           Delete Event
