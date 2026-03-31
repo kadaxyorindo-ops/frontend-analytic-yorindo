@@ -6,6 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -13,11 +14,15 @@ interface TopbarProps {
 
 export function Topbar({ onToggleSidebar }: TopbarProps) {
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleLogout = () => {
-    navigate("/");
+    logout();
+    navigate("/", { replace: true });
   };
+
+  const userInitial = user?.name.trim().charAt(0).toUpperCase() ?? "U";
 
   return (
     <header className="h-20 bg-white border-b-2 border-dashed border-slate-300 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
@@ -42,17 +47,25 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
       </div>
       
       <div className="flex items-center gap-4 ml-4 flex-shrink-0">
+        <div className="hidden text-right md:block">
+          <p className="text-sm font-semibold text-slate-700">
+            {user?.name ?? "User"}
+          </p>
+          <p className="text-xs font-mono text-slate-400">
+            {user?.organizationName ?? user?.role ?? "EMS Staff"}
+          </p>
+        </div>
         <div className="w-8 h-8 hidden sm:flex rounded-full border border-dashed border-slate-300 items-center justify-center text-slate-400 font-mono text-xs cursor-help">?</div>
         
         <DropdownMenu>
           <DropdownMenuTrigger className="outline-none">
             <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-dashed border-slate-400 flex items-center justify-center text-slate-500 font-mono text-xs hover:bg-slate-300 transition-colors cursor-pointer">
-              U
+              {userInitial}
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem className="cursor-pointer">
-              Profile
+              {user?.email ?? "Profile"}
             </DropdownMenuItem>
             <DropdownMenuItem 
               onClick={handleLogout}
