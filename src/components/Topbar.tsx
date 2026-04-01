@@ -20,7 +20,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
   };
 
   return (
-    <header className="h-20 bg-white shadow-sm px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
+    <header className="h-20 bg-[#faf8ff]/80 shadow-sm backdrop-blur-xl px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
       <div className="flex items-center gap-4 w-full max-w-md">
         {/* Hamburger Menu Button */}
         <button 
@@ -36,7 +36,7 @@ export function Topbar({ onToggleSidebar }: TopbarProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search events or organizers..."
-            className="w-full h-10 bg-background border border-slate-200 rounded-lg px-4 text-sm font-mono outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-all placeholder:text-slate-400"
+            className="w-full h-10 bg-background border border-slate-200 rounded-lg px-4 text-sm font-mono outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-100 transition-all placeholder:text-slate-400"
           />
         </div>
       </div>
