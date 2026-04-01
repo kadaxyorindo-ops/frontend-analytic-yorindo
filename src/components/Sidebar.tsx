@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import {CalendarDays, Mail, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
+  const { user } = useAuth();
   const isActive = (path: string) => location.pathname === path;
 
   return (
@@ -38,8 +40,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
-          <Link 
-            to="/events" 
+          <Link
+            to="/events"
             onClick={onClose}
             className={`h-12 font-semibold flex items-center px-4 font-mono text-sm transition-colors ${
               isActive('/events') 
@@ -63,8 +65,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Mail className={`mr-3 h-5 w-5 ${isActive('/communication') ? 'text-[#002a85]' : ''}`} />
             Communication
           </Link>
-          <Link 
-            to="/settings" 
+          <Link
+            to="/settings"
             onClick={onClose}
             className={`h-12 font-semibold flex items-center px-4 font-mono text-sm transition-colors ${
               isActive('/settings') 
@@ -75,6 +77,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Settings className={`mr-3 h-5 w-5 ${isActive('/settings') ? 'text-[#002a85]' : ''}`} />
             Settings
           </Link>
+          {user?.role === "super_admin" && (
+            <Link
+              to="/users"
+              onClick={onClose}
+              className={`h-12 border border-dashed rounded-lg flex items-center px-4 font-mono text-sm transition-colors ${
+                isActive('/users')
+                  ? 'bg-slate-100 border-slate-400 text-slate-700'
+                  : 'border-slate-300 text-slate-400 hover:bg-slate-50'
+              }`}
+            >
+              [Nav: Users]
+            </Link>
+          )}
         </nav>
       </aside>
     </>
