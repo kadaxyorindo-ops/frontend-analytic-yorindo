@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -7,6 +8,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
+  const { user } = useAuth();
   const isActive = (path: string) => location.pathname === path;
 
   return (
@@ -37,39 +39,52 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
         
         <nav className="flex-1 p-4 space-y-2">
-          <Link 
-            to="/events" 
+          <Link
+            to="/events"
             onClick={onClose}
             className={`h-12 border border-dashed rounded-lg flex items-center px-4 font-mono text-sm transition-colors ${
-              isActive('/events') 
-                ? 'bg-slate-100 border-slate-400 text-slate-700' 
+              isActive('/events')
+                ? 'bg-slate-100 border-slate-400 text-slate-700'
                 : 'border-slate-300 text-slate-400 hover:bg-slate-50'
             }`}
           >
             [Nav: Events]
           </Link>
-          <Link 
-            to="/communication" 
+          <Link
+            to="/communication"
             onClick={onClose}
             className={`h-12 border border-dashed rounded-lg flex items-center px-4 font-mono text-sm transition-colors ${
-              isActive('/communication') 
-                ? 'bg-slate-100 border-slate-400 text-slate-700' 
+              isActive('/communication')
+                ? 'bg-slate-100 border-slate-400 text-slate-700'
                 : 'border-slate-300 text-slate-400 hover:bg-slate-50'
             }`}
           >
             [Nav: Communication]
           </Link>
-          <Link 
-            to="/settings" 
+          <Link
+            to="/settings"
             onClick={onClose}
             className={`h-12 border border-dashed rounded-lg flex items-center px-4 font-mono text-sm transition-colors ${
-              isActive('/settings') 
-                ? 'bg-slate-100 border-slate-400 text-slate-700' 
+              isActive('/settings')
+                ? 'bg-slate-100 border-slate-400 text-slate-700'
                 : 'border-slate-300 text-slate-400 hover:bg-slate-50'
             }`}
           >
             [Nav: Settings]
           </Link>
+          {user?.role === "super_admin" && (
+            <Link
+              to="/users"
+              onClick={onClose}
+              className={`h-12 border border-dashed rounded-lg flex items-center px-4 font-mono text-sm transition-colors ${
+                isActive('/users')
+                  ? 'bg-slate-100 border-slate-400 text-slate-700'
+                  : 'border-slate-300 text-slate-400 hover:bg-slate-50'
+              }`}
+            >
+              [Nav: Users]
+            </Link>
+          )}
         </nav>
       </aside>
     </>
