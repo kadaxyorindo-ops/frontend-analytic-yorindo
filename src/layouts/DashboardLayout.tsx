@@ -7,7 +7,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-slate-50 relative overflow-hidden">
+    <div className="min-h-screen flex bg-background relative overflow-hidden">
       
       {/* Isolated Sidebar Component */}
       <Sidebar 
@@ -23,7 +23,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
 
         {/* Dynamic Page Content */}
         <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
-          <div className="max-w-6xl mx-auto border-2 border-dashed border-slate-300 bg-white min-h-[500px] rounded-xl p-6 shadow-sm">
+          <div className="max-w-6xl mx-auto bg-white min-h-[500px] rounded-3xl p-6">
             {children}
           </div>
         </main>

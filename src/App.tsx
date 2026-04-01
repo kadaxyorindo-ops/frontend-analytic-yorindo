@@ -11,6 +11,7 @@ import { Users } from "@/pages/users/Users";
 import { Communication } from "@/pages/communication/Communication";
 import { Settings } from "@/pages/settings/Settings";
 import { NotFound } from "@/pages/NotFound";
+import {Participants} from "@/components/Participant";
 import { useAuth } from "@/hooks/useAuth";
 
 function FullPageStatus({ label }: { label: string }) {
