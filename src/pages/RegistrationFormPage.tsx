@@ -102,7 +102,6 @@ const RegistrationFormPage = () => {
   const { events } = useSelector((state: RootState) => state.events)
   const { forms } = useSelector((state: RootState) => state.registrationForms)
   const [formTitle, setFormTitle] = useState("")
-  const [manualEventId, setManualEventId] = useState("")
   const [customFields, setCustomFields] = useState<DraftField[]>([])
   const [fieldDraft, setFieldDraft] = useState<DraftField>(emptyDraft())
   const [selectedIndustry, setSelectedIndustry] = useState<(typeof industryOptions)[number]>("Elektronik & Peralatan Rumah Tangga")
@@ -117,7 +116,7 @@ const RegistrationFormPage = () => {
   const [remoteForm, setRemoteForm] = useState<RegistrationForm | null>(null)
   const [remoteFixFields, setRemoteFixFields] = useState<FixField[] | null>(null)
 
-  const effectiveEventId = (eventId ?? manualEventId).trim()
+  const effectiveEventId = (eventId ?? "").trim()
   const event = events.find((item) => item.event_id === effectiveEventId)
   const existingForm = forms.find((item) => item.event_id === effectiveEventId)
   const persistedForm = existingForm ?? remoteForm
@@ -487,19 +486,8 @@ const RegistrationFormPage = () => {
         {!event ? (
           <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
             <p className="text-sm font-semibold">
-              Event ID belum terdeteksi dari list event. Masukkan manual untuk testing.
+              Event belum ditemukan di daftar. Pastikan URL event ID sudah benar.
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <input
-                value={manualEventId}
-                onChange={(event) => setManualEventId(event.target.value)}
-                placeholder="Contoh: EVT-001 atau ID dari backend"
-                className="min-w-[260px] flex-1 rounded-[12px] border border-amber-200 bg-white px-4 py-2 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-200/70"
-              />
-              <span className="text-xs text-amber-700">
-                Setelah diisi, tombol Save akan memakai ID ini.
-              </span>
-            </div>
             {isLoadingForm ? (
               <p className="mt-3 text-xs font-medium text-amber-700">Loading form dari server...</p>
             ) : null}
