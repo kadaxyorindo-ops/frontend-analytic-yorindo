@@ -1,6 +1,12 @@
-import { useSelector } from "react-redux"
-import type { RootState } from "@/store/store"
+import { useContext } from "react";
+import { AuthContext } from "@/context/AuthContext";
 
-export const useAuth = () => {
-  return useSelector((state: RootState) => state.auth)
+export function useAuth() {
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth harus digunakan di dalam AuthProvider.");
+  }
+
+  return context;
 }
