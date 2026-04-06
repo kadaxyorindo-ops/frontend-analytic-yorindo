@@ -18,8 +18,9 @@ import {
 import MainLayout from "@/components/Layout/MainLayout"
 import Button from "@/components/Button"
 import { addForm, deleteCustomField, updateCustomField } from "@/store/registrationFormSlice"
+import { api } from "@/services/api"
 import type { RootState } from "@/store/store"
-import type { CustomField } from "@/types/registration-form"
+import type { CustomField, FixField, RegistrationForm } from "@/types/registration-form"
 import { defaultFixFields } from "@/utils/mockData"
 
 type DraftField = Omit<CustomField, "id" | "order">
@@ -101,6 +102,7 @@ const RegistrationFormPage = () => {
   const { events } = useSelector((state: RootState) => state.events)
   const { forms } = useSelector((state: RootState) => state.registrationForms)
   const [formTitle, setFormTitle] = useState("")
+  const [manualEventId, setManualEventId] = useState("")
   const [customFields, setCustomFields] = useState<DraftField[]>([])
   const [fieldDraft, setFieldDraft] = useState<DraftField>(emptyDraft())
   const [selectedIndustry, setSelectedIndustry] = useState<(typeof industryOptions)[number]>("Elektronik & Peralatan Rumah Tangga")
@@ -108,11 +110,21 @@ const RegistrationFormPage = () => {
   const [showFieldEditor, setShowFieldEditor] = useState(false)
   const [previewField, setPreviewField] = useState<DraftField | null>(null)
   const [editorState, setEditorState] = useState<EditorState>({ mode: "create", index: null, persistedId: null })
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
+  const [isLoadingForm, setIsLoadingForm] = useState(false)
+  const [loadError, setLoadError] = useState("")
+  const [remoteForm, setRemoteForm] = useState<RegistrationForm | null>(null)
+  const [remoteFixFields, setRemoteFixFields] = useState<FixField[] | null>(null)
 
-  const event = events.find((item) => item.event_id === eventId)
-  const existingForm = forms.find((item) => item.event_id === eventId)
-  const shownFields = existingForm?.custom_fields ?? customFields
-  const currentFormTitle = formTitle || `Registration Form - ${event?.title ?? ""}`
+  const effectiveEventId = (eventId ?? manualEventId).trim()
+  const event = events.find((item) => item.event_id === effectiveEventId)
+  const existingForm = forms.find((item) => item.event_id === effectiveEventId)
+  const persistedForm = existingForm ?? remoteForm
+  const displayEventTitle = event?.title || (effectiveEventId ? `Event ${effectiveEventId}` : "Event Manual")
+  const activeFixFields = remoteFixFields ?? defaultFixFields
+  const shownFields = persistedForm?.custom_fields ?? customFields
+  const currentFormTitle = formTitle || `Registration Form - ${displayEventTitle}`
 
   const currentTypeMeta = useMemo(
     () => typeOptions.find((option) => option.value === fieldDraft.type),
@@ -120,8 +132,197 @@ const RegistrationFormPage = () => {
   )
 
   useEffect(() => {
-    if (existingForm) setFormTitle(existingForm.title)
-  }, [existingForm])
+    if (persistedForm) setFormTitle(persistedForm.title)
+  }, [persistedForm])
+
+  const normalizeKey = (label: string) =>
+    label
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+
+  const mapFieldType = (type: string) => (type === "tel" ? "phone" : type)
+
+  const mapFixedFieldType = (type?: string): FixField["type"] => {
+    if (type === "email") return "email"
+    if (type === "phone" || type === "tel") return "tel"
+    return "text"
+  }
+
+  const mapCustomFieldType = (type?: string): CustomField["type"] => {
+    if (!type) return "text"
+    if (type === "tel") return "phone"
+    return type as CustomField["type"]
+  }
+
+  useEffect(() => {
+    if (!effectiveEventId || existingForm) return
+
+    const loadForm = async () => {
+      setIsLoadingForm(true)
+      setLoadError("")
+
+      const result = await api.get<unknown>(
+        `/api/v1/form-builder/events/${effectiveEventId}`
+      )
+
+      setIsLoadingForm(false)
+
+      if (result.error || !result.data) {
+        setLoadError(result.message)
+        setRemoteForm(null)
+        setRemoteFixFields(null)
+        return
+      }
+
+      const rawPayload =
+        typeof result.data === "object" && result.data && "data" in result.data
+          ? (result.data as { data: unknown }).data
+          : result.data
+
+      const payload = (rawPayload ?? {}) as {
+        formName?: string
+        fixedFields?: Array<{
+          key?: string
+          name?: string
+          label?: string
+          type?: string
+          required?: boolean
+        }>
+        fixed_fields?: Array<{
+          key?: string
+          name?: string
+          label?: string
+          type?: string
+          required?: boolean
+        }>
+        customQuestions?: Array<{
+          key?: string
+          name?: string
+          label?: string
+          type?: string
+          required?: boolean
+          options?: string[]
+        }>
+        custom_questions?: Array<{
+          key?: string
+          name?: string
+          label?: string
+          type?: string
+          required?: boolean
+          options?: string[]
+        }>
+        customFields?: Array<{
+          key?: string
+          name?: string
+          label?: string
+          type?: string
+          required?: boolean
+          options?: string[]
+        }>
+        custom_fields?: Array<{
+          key?: string
+          name?: string
+          label?: string
+          type?: string
+          required?: boolean
+          options?: string[]
+        }>
+        questions?: Array<{
+          key?: string
+          name?: string
+          label?: string
+          type?: string
+          required?: boolean
+          options?: string[]
+        }>
+        publish?: boolean
+        _id?: string
+        id?: string
+        formId?: string
+        link_pendaftaran?: string
+        qr_code?: string
+        link?: string
+        qrCode?: string
+        created_at?: string
+        updated_at?: string
+        createdAt?: string
+        updatedAt?: string
+      }
+
+      const fixedSource =
+        payload.fixedFields ??
+        payload.fixed_fields ??
+        []
+
+      const customSource =
+        payload.customQuestions ??
+        payload.custom_questions ??
+        payload.customFields ??
+        payload.custom_fields ??
+        payload.questions ??
+        []
+
+      const fixedFields = fixedSource
+        .filter((field) => field?.isActive !== false)
+        .map((field, index) => ({
+          name: field.key ?? field.name ?? `field_${index + 1}`,
+          label: field.label ?? field.key ?? field.name ?? `Field ${index + 1}`,
+          type: mapFixedFieldType(field.type),
+          required: Boolean(field.required ?? field.validation?.required),
+          order: field.order ?? index + 1,
+        }))
+
+      const customFields = customSource
+        .filter((field) => field?.isActive !== false)
+        .map((field, index) => {
+          const rawOptions = field.options ?? []
+          const options = rawOptions.map((option) => {
+            if (typeof option === "string") return option
+            return option.value ?? option.label ?? ""
+          }).filter(Boolean)
+
+          return {
+            id: field.key ?? field.name ?? `custom-${index + 1}`,
+            label: field.label ?? field.key ?? field.name ?? `Question ${index + 1}`,
+            type: mapCustomFieldType(field.type),
+            required: Boolean(field.required ?? field.validation?.required),
+            options,
+            order: field.order ?? fixedFields.length + index + 1,
+          }
+        })
+
+      const formId =
+        payload.formId ??
+        payload._id ??
+        payload.id ??
+        `FORM-${effectiveEventId}`
+      const now = new Date().toISOString()
+
+      setRemoteFixFields(fixedFields.length ? fixedFields : null)
+      setRemoteForm({
+        form_id: formId,
+        event_id: effectiveEventId,
+        title: payload.formName ?? `Registration Form - ${displayEventTitle}`,
+        fix_fields: fixedFields.length ? fixedFields : defaultFixFields,
+        custom_fields: customFields,
+        link_pendaftaran:
+          payload.link_pendaftaran ??
+          payload.link ??
+          `https://yorindo.com/register/${effectiveEventId}`,
+        qr_code:
+          payload.qr_code ??
+          payload.qrCode ??
+          `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=register/${effectiveEventId}`,
+        is_active: payload.publish ?? true,
+        created_at: payload.created_at ?? payload.createdAt ?? now,
+        updated_at: payload.updated_at ?? payload.updatedAt ?? now,
+      })
+    }
+
+    void loadForm()
+  }, [displayEventTitle, effectiveEventId, existingForm])
 
   const openCreateEditor = () => {
     setEditorState({ mode: "create", index: null, persistedId: null })
@@ -214,34 +415,61 @@ const RegistrationFormPage = () => {
     setCustomFields((current) => current.filter((_, currentIndex) => currentIndex !== index))
   }
 
-  const saveForm = () => {
-    if (!eventId || !event || existingForm) return
+  const saveForm = async () => {
+    if (!effectiveEventId || existingForm || isSaving) {
+      if (!effectiveEventId) {
+        setSaveError("Event ID belum diisi. Isi dulu supaya bisa simpan.")
+      }
+      return
+    }
+
+    setIsSaving(true)
+    setSaveError("")
+
+    const payload = {
+      formName: formTitle || `Registration Form - ${displayEventTitle}`,
+      fixedFields: activeFixFields.map((field) => ({
+        key: field.name,
+        label: field.label,
+        type: mapFieldType(field.type),
+        ...(field.required ? { required: true } : {}),
+      })),
+      customQuestions: customFields.map((field) => ({
+        key: normalizeKey(field.label),
+        label: field.label,
+        type: mapFieldType(field.type),
+        ...(supportsOptions(field.type) && (field.options ?? []).length > 0
+          ? { options: (field.options ?? []).map((option) => option.trim()).filter(Boolean) }
+          : {}),
+      })),
+      publish: true,
+    }
+
+    const result = await api.put(
+      `/api/v1/form-builder/events/${effectiveEventId}`,
+      payload
+    )
+    setIsSaving(false)
+
+    if (result.error) {
+      setSaveError(result.message)
+      return
+    }
 
     dispatch(
       addForm({
-        event_id: eventId,
+        event_id: effectiveEventId,
         data: {
-          title: formTitle || `Registration Form - ${event.title}`,
+          title: formTitle || `Registration Form - ${displayEventTitle}`,
           custom_fields: customFields.map((field, index) => ({
             ...field,
-            order: defaultFixFields.length + index + 1,
+            order: activeFixFields.length + index + 1,
           })),
         },
       })
     )
 
-    navigate(`/events/${eventId}/analytics`)
-  }
-
-  if (!event) {
-    return (
-      <MainLayout title="Registration Form">
-        <div className="card py-16 text-center">
-          <p className="text-neutral-500">Event tidak ditemukan</p>
-          <Button onClick={() => navigate("/events")} className="mt-4">Kembali ke Events</Button>
-        </div>
-      </MainLayout>
-    )
+    navigate(`/events/${effectiveEventId}/analytics`)
   }
 
   return (
@@ -256,6 +484,31 @@ const RegistrationFormPage = () => {
       }
     >
       <div className="mx-auto max-w-[1280px] space-y-10">
+        {!event ? (
+          <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+            <p className="text-sm font-semibold">
+              Event ID belum terdeteksi dari list event. Masukkan manual untuk testing.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <input
+                value={manualEventId}
+                onChange={(event) => setManualEventId(event.target.value)}
+                placeholder="Contoh: EVT-001 atau ID dari backend"
+                className="min-w-[260px] flex-1 rounded-[12px] border border-amber-200 bg-white px-4 py-2 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-200/70"
+              />
+              <span className="text-xs text-amber-700">
+                Setelah diisi, tombol Save akan memakai ID ini.
+              </span>
+            </div>
+            {isLoadingForm ? (
+              <p className="mt-3 text-xs font-medium text-amber-700">Loading form dari server...</p>
+            ) : null}
+            {loadError ? (
+              <p className="mt-3 text-xs font-semibold text-red-600">{loadError}</p>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm text-neutral-500">
@@ -263,7 +516,7 @@ const RegistrationFormPage = () => {
                 Events
               </button>
               <span>&gt;</span>
-              <span className="font-medium text-neutral-700">{event.title}</span>
+              <span className="font-medium text-neutral-700">{displayEventTitle}</span>
             </div>
             <h1 className="text-[2.8rem] font-extrabold leading-[1.05] tracking-[-0.04em] text-primary">
               {currentFormTitle}
@@ -293,13 +546,13 @@ const RegistrationFormPage = () => {
                     <input
                       value={formTitle}
                       onChange={(event) => setFormTitle(event.target.value)}
-                      placeholder={`Registration Form - ${event.title}`}
+                      placeholder={`Registration Form - ${displayEventTitle}`}
                       className="w-full rounded-[18px] border border-[#DCE5F2] bg-white px-5 py-4 text-lg text-neutral-800 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
                     />
                   </div>
                 ) : null}
                 <div className="grid gap-5 md:grid-cols-2">
-                  {defaultFixFields.map((field) => (
+                  {activeFixFields.map((field) => (
                     <div key={field.name} className="space-y-3">
                       <p className="text-sm font-bold uppercase tracking-[0.08em] text-neutral-700">
                         {field.label.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase())}
@@ -680,13 +933,18 @@ const RegistrationFormPage = () => {
             >
               Discard Changes
             </button>
-            <Button
-              onClick={saveForm}
-              disabled={Boolean(existingForm)}
-              className="min-w-[250px] justify-center px-8 py-5 text-2xl font-bold shadow-[0_18px_35px_rgba(10,38,71,0.18)]"
-            >
-              {existingForm ? "Saved" : "Save Changes"}
-            </Button>
+            <div className="flex flex-col items-end gap-2">
+              {saveError ? (
+                <p className="text-sm font-medium text-danger">{saveError}</p>
+              ) : null}
+              <Button
+                onClick={saveForm}
+                disabled={Boolean(existingForm) || isSaving}
+                className="min-w-[250px] justify-center px-8 py-5 text-2xl font-bold shadow-[0_18px_35px_rgba(10,38,71,0.18)]"
+              >
+                {existingForm ? "Saved" : isSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --radius-md: 12px;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-[12px] border border-neutral-200 bg-white p-4 shadow-sm;
+  }
+
+  .metrics-number {
+    @apply text-3xl font-semibold text-neutral-900;
+  }
+
+  .glass-panel {
+    @apply rounded-[12px] border border-white/20 bg-white/10 p-4 text-white backdrop-blur-lg shadow-sm;
+  }
+}
+
+@layer utilities {
+  .rounded-card {
+    border-radius: 12px;
+  }
+
+  .rounded-button {
+    border-radius: 8px;
+  }
+
+  .shadow-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Basic global defaults */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #f9fafb;
+  color: #0f172a;
+}
+
+#root {
+  min-height: 100%;
+}

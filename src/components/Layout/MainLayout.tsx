@@ -1,9 +1,7 @@
 import { useState, type PropsWithChildren } from "react"
 import { Menu, X } from "lucide-react"
-import { useDispatch } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
-import { logout } from "@/store/authSlice"
 import Sidebar from "./Sidebar"
 
 type MainLayoutProps = PropsWithChildren<{
@@ -13,13 +11,12 @@ type MainLayoutProps = PropsWithChildren<{
 }>
 
 const MainLayout = ({ children, title, subtitle, actions }: MainLayoutProps) => {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const handleLogout = () => {
-    dispatch(logout())
+    logout()
     navigate("/login")
   }
 

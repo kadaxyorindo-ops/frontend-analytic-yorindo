@@ -77,7 +77,7 @@ export function Login() {
     }
 
     startTransition(() => {
-      navigate("/home", { replace: true });
+      navigate("/events", { replace: true });
     });
   };
 

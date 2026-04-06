@@ -1,18 +1,26 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
+import { useDispatch } from "react-redux"
 import { CalendarRange, Filter, Search } from "lucide-react"
 import MainLayout from "@/components/Layout/MainLayout"
 import EventCard from "@/components/EventCard"
 import Button from "@/components/Button"
 import { useAuth } from "@/hooks/useAuth"
 import { useEvents } from "@/hooks/useEvents"
+import { fetchEvents } from "@/store/eventSlice"
+import type { AppDispatch } from "@/store/store"
 import type { Event } from "@/types/event"
 
 const EventListPage = () => {
+  const dispatch = useDispatch<AppDispatch>()
   const { user } = useAuth()
   const { events } = useEvents()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | Event["status"]>("all")
+
+  useEffect(() => {
+    void dispatch(fetchEvents())
+  }, [dispatch])
 
   const filteredEvents = useMemo(() => {
     const visibleEvents =

@@ -17,6 +17,9 @@ export interface AuthUser {
   name: string;
   email: string;
   role: string;
+  exhibitor_id?: string;
+  company_name?: string;
+  phone?: string;
   organizationName: string | null;
   lastLoginAt: string | null;
 }
