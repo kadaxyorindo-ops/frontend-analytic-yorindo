@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -128,3 +129,89 @@
     @apply font-sans;
     }
 }
+=======
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color: #111827;
+    background: #f9fafb;
+    font-family: "Inter", sans-serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at top right, rgba(245, 158, 11, 0.12), transparent 28%),
+      linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-card bg-white p-6 shadow-card transition-transform duration-200;
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .metrics-number {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #111827;
+  }
+
+  .text-small {
+    font-size: 12px;
+    font-weight: 400;
+  }
+}
+>>>>>>> form-builder
