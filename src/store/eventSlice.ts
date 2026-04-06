@@ -54,6 +54,7 @@ const normalizeLocation = (
 
 const normalizeDate = (item: EventApiItem) =>
   item.event_date ||
+  item.eventDate ||
   item.date ||
   item.start_at ||
   item.starts_at ||
@@ -76,7 +77,10 @@ const mapEvent = (item: EventApiItem): Event => ({
 export const fetchEvents = createAsyncThunk<Event[], void, { rejectValue: string }>(
   "events/fetchEvents",
   async (_, { rejectWithValue }) => {
-    const result = await api.get<{ items: EventApiItem[] }>("/api/v1/events")
+    const cacheBuster = `ts=${Date.now()}`
+    const result = await api.get<{ items: EventApiItem[] }>(
+      `/api/v1/events?${cacheBuster}`
+    )
     if (result.error || !result.data) {
       return rejectWithValue(result.error ?? "Gagal mengambil data event.")
     }

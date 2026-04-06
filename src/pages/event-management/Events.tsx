@@ -1,59 +1,140 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Calendar, MapPin, Plus, X } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
+import type { AppDispatch } from "@/store/store";
+import { useEvents } from "@/hooks/useEvents";
+import { fetchEvents } from "@/store/eventSlice";
+import { formatDate } from "@/utils/formatters";
+import { api } from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 
-type EventStatus = "Published" | "Ongoing" | "Draft";
-
-type Event = {
-  title: string;
-  status: EventStatus;
-  date: string;
-  location: string;
-  progress: number;
-};
-
-const statuses: EventStatus[] = ["Published", "Ongoing", "Draft"];
-
-const events: Event[] = Array.from({ length: 87 }, (_, i) => ({
-  title: `Event ${i + 1}`,
-  status: statuses[i % 3],
-  date: "15 April 2026",
-  location: "Jakarta, Indonesia",
-  progress: Math.floor(Math.random() * 100),
-}));
+type EventStatus = "Published" | "Ongoing" | "Draft" | "Closed";
 
 const statusColor: Record<EventStatus, string> = {
   Published: "bg-[#E6F9F0] text-[#22C55E]",
   Ongoing: "bg-[#EAF1FF] text-[#3B82F6]",
   Draft: "bg-[#F3F4F6] text-[#6B7280]",
+  Closed: "bg-[#F3F4F6] text-[#9CA3AF]",
 };
 
-const tabs = ["All", "Draft", "Published", "Ongoing"] as const;
+const tabs = ["All", "Draft", "Published", "Ongoing", "Closed"] as const;
 type TabType = (typeof tabs)[number];
 
 const Events = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useAuth();
+  const { events, isLoading } = useEvents();
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabType>("All");
   const [showModal, setShowModal] = useState(false);
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   const [newEvent, setNewEvent] = useState({
     title: "",
-    date: "",
+    eventDate: "",
     location: "",
-    status: "Draft" as EventStatus,
+    industryName: "",
+    industryRefId: "",
   });
 
   const handleCreateEvent = () => {
-    console.log(newEvent);
-    setShowModal(false);
+    void submitCreateEvent();
   };
+
+  const submitCreateEvent = async () => {
+    if (!newEvent.title.trim()) {
+      setCreateError("Judul event wajib diisi.");
+      return;
+    }
+
+    if (!newEvent.location.trim()) {
+      setCreateError("Lokasi event wajib diisi.");
+      return;
+    }
+
+    if (!newEvent.eventDate) {
+      setCreateError("Tanggal event wajib diisi.");
+      return;
+    }
+
+    if (!user?.id) {
+      setCreateError("User belum login, createdBy tidak ditemukan.");
+      return;
+    }
+
+    setCreateError("");
+    setIsCreating(true);
+
+    const payload = {
+      title: newEvent.title.trim(),
+      industry: {
+        refId: newEvent.industryRefId.trim() || undefined,
+        name: newEvent.industryName.trim() || undefined,
+      },
+      location: newEvent.location.trim(),
+      eventDate: new Date(newEvent.eventDate).toISOString(),
+      createdBy: user.id,
+    };
+
+    const result = await api.post("/api/v1/events", payload);
+    setIsCreating(false);
+
+    if (result.error) {
+      setCreateError(result.message);
+      return;
+    }
+
+    setShowModal(false);
+    setNewEvent({
+      title: "",
+      eventDate: "",
+      location: "",
+      industryName: "",
+      industryRefId: "",
+    });
+    void dispatch(fetchEvents());
+  };
+
+  useEffect(() => {
+    void dispatch(fetchEvents());
+  }, [dispatch]);
 
   const eventsPerPage = 9;
 
+  const mappedEvents = useMemo(() => {
+    return events.map((event) => {
+      const pct =
+        event.max_capacity > 0
+          ? Math.round((event.registered_count / event.max_capacity) * 100)
+          : 0;
+
+      const statusLabel: EventStatus =
+        event.status === "published"
+          ? "Published"
+          : event.status === "closed"
+            ? "Closed"
+            : event.status === "draft"
+              ? "Draft"
+              : "Ongoing";
+
+      return {
+        id: event.event_id,
+        title: event.title,
+        status: statusLabel,
+        date: formatDate(event.event_date),
+        location: event.location,
+        progress: Math.min(Math.max(pct, 0), 100),
+      };
+    });
+  }, [events]);
+
   const filteredEvents =
     activeTab === "All"
-      ? events
-      : events.filter((event) => event.status === activeTab);
+      ? mappedEvents
+      : mappedEvents.filter((event) => event.status === activeTab);
 
   const totalPages = Math.ceil(filteredEvents.length / eventsPerPage);
 
@@ -114,9 +195,29 @@ const Events = () => {
 
       {/* CARDS */}
       <div className="grid xl:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-6">
-        {currentEvents.map((event, i) => (
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={`skeleton-${i}`}
+              className="bg-[#FFFFFF] p-6 rounded-[24px] border border-[#D7E1F0] shadow-[0_12px_32px_rgba(10,38,71,0.08)] animate-pulse"
+            >
+              <div className="h-6 w-24 rounded-full bg-slate-200" />
+              <div className="mt-4 h-5 w-3/4 bg-slate-200 rounded" />
+              <div className="mt-4 space-y-2">
+                <div className="h-4 w-2/3 bg-slate-200 rounded" />
+                <div className="h-4 w-1/2 bg-slate-200 rounded" />
+              </div>
+              <div className="mt-6 h-8 w-full bg-slate-200 rounded" />
+            </div>
+          ))
+        ) : currentEvents.length === 0 ? (
+          <div className="col-span-full rounded-[24px] border border-dashed border-[#D7E1F0] bg-white px-6 py-12 text-center text-sm text-[#6B7280]">
+            Belum ada event untuk ditampilkan.
+          </div>
+        ) : (
+          currentEvents.map((event, i) => (
           <div
-            key={i}
+            key={event.id}
             className={`bg-[#FFFFFF] p-6 rounded-[24px] border border-[#D7E1F0]
             shadow-[0_12px_32px_rgba(10,38,71,0.08)]
             transition-all duration-500
@@ -164,11 +265,15 @@ const Events = () => {
               </div>
             </div>
 
-            <button className="mt-6 w-full border border-[#F97316] text-[#F97316] py-2 rounded-[12px] text-sm hover:bg-[#FFF7ED] transition">
+            <Link
+              to={`/events/${event.id}`}
+              className="mt-6 block w-full border border-[#F97316] text-[#F97316] py-2 rounded-[12px] text-sm hover:bg-[#FFF7ED] transition text-center"
+            >
               View Analytics
-            </button>
+            </Link>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* PAGINATION */}
@@ -230,33 +335,75 @@ const Events = () => {
             <div className="space-y-4">
               <input
                 placeholder="Event Title"
+                value={newEvent.title}
+                onChange={(event) =>
+                  setNewEvent((current) => ({ ...current, title: event.target.value }))
+                }
+                disabled={isCreating}
                 className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
               />
 
               <input
-                type="date"
+                type="datetime-local"
+                value={newEvent.eventDate}
+                onChange={(event) =>
+                  setNewEvent((current) => ({ ...current, eventDate: event.target.value }))
+                }
+                disabled={isCreating}
                 className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
               />
 
               <input
                 placeholder="Location"
+                value={newEvent.location}
+                onChange={(event) =>
+                  setNewEvent((current) => ({ ...current, location: event.target.value }))
+                }
+                disabled={isCreating}
                 className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
               />
 
-              <select className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2">
-                <option>Draft</option>
-                <option>Published</option>
-                <option>Ongoing</option>
-              </select>
+              <input
+                placeholder="Industry Name (opsional)"
+                value={newEvent.industryName}
+                onChange={(event) =>
+                  setNewEvent((current) => ({ ...current, industryName: event.target.value }))
+                }
+                disabled={isCreating}
+                className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
+              />
+              <input
+                placeholder="Industry Ref ID (opsional)"
+                value={newEvent.industryRefId}
+                onChange={(event) =>
+                  setNewEvent((current) => ({ ...current, industryRefId: event.target.value }))
+                }
+                disabled={isCreating}
+                className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
+              />
             </div>
 
+            {createError ? (
+              <p className="mt-4 text-sm text-red-600">{createError}</p>
+            ) : null}
+            {isCreating ? (
+              <p className="mt-3 text-sm text-[#6B7280]">Menyimpan event...</p>
+            ) : null}
+
             <div className="flex justify-end gap-3 mt-6">
-              <button className="px-4 py-2 border border-[#D7E1F0] rounded-[12px]">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 border border-[#D7E1F0] rounded-[12px]"
+              >
                 Cancel
               </button>
 
-              <button className="px-4 py-2 bg-[#0A2647] text-white rounded-[12px]">
-                Save Event
+              <button
+                onClick={handleCreateEvent}
+                disabled={isCreating}
+                className="px-4 py-2 bg-[#0A2647] text-white rounded-[12px] disabled:opacity-60"
+              >
+                {isCreating ? "Saving..." : "Save Event"}
               </button>
             </div>
           </div>

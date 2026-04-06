@@ -1,8 +1,8 @@
-import { DashboardLayout } from "@/layouts/DashboardLayout";
+import MainDashboard from "@/layouts/MainDashboard";
 
 export function Settings() {
   return (
-    <DashboardLayout>
+    <MainDashboard>
       <div className="space-y-6 flex flex-col h-full">
         <div className="mb-6 pb-2 border-b border-dashed border-slate-200">
           <h1 className="text-3xl font-bold">Settings</h1>
@@ -14,6 +14,6 @@ export function Settings() {
           <span className="text-slate-400 font-mono">[Settings Configuration Placeholder]</span>
         </div>
       </div>
-    </DashboardLayout>
+    </MainDashboard>
   );
 }

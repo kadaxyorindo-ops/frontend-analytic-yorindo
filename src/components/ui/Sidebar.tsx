@@ -17,7 +17,7 @@ const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
   const location = useLocation();
 
   const menu = [
-    { name: "Dashboard", path: "/", icon: LayoutDashboard },
+    { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Events", path: "/events", icon: Calendar },
     { name: "Exhibitors", path: "/exhibitors", icon: Users },
     { name: "Attendees", path: "/attendees", icon: Users },
@@ -66,7 +66,9 @@ const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
             <div className="flex flex-col gap-2">
               {menu.map((item) => {
                 const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+                const isActive =
+                  location.pathname === item.path ||
+                  (item.path !== "/" && location.pathname.startsWith(item.path + "/"));
 
                 return (
                   <Link

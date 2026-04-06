@@ -165,6 +165,7 @@ const RegistrationFormPage = () => {
       const result = await api.get<unknown>(
         `/api/v1/form-builder/events/${effectiveEventId}`
       )
+      console.log("[FormBuilder] GET /api/v1/form-builder/events response:", result)
 
       setIsLoadingForm(false)
 
@@ -292,6 +293,10 @@ const RegistrationFormPage = () => {
           }
         })
 
+      console.log("[FormBuilder] Parsed payload:", payload)
+      console.log("[FormBuilder] Mapped fixed fields:", fixedFields)
+      console.log("[FormBuilder] Mapped custom fields:", customFields)
+
       const formId =
         payload.formId ??
         payload._id ??
@@ -318,6 +323,19 @@ const RegistrationFormPage = () => {
         created_at: payload.created_at ?? payload.createdAt ?? now,
         updated_at: payload.updated_at ?? payload.updatedAt ?? now,
       })
+
+      if (!existingForm) {
+        setCustomFields(
+          customFields.map((field) => ({
+            label: field.label,
+            type: field.type,
+            required: field.required,
+            options: field.options ?? [],
+            placeholder: field.placeholder ?? "",
+            condition: field.condition,
+          }))
+        )
+      }
     }
 
     void loadForm()
@@ -427,18 +445,38 @@ const RegistrationFormPage = () => {
 
     const payload = {
       formName: formTitle || `Registration Form - ${displayEventTitle}`,
-      fixedFields: activeFixFields.map((field) => ({
+      fixedFields: activeFixFields.map((field, index) => ({
         key: field.name,
         label: field.label,
         type: mapFieldType(field.type),
-        ...(field.required ? { required: true } : {}),
+        order: field.order ?? index + 1,
+        isFixed: true,
+        isActive: true,
+        validation: {
+          required: Boolean(field.required),
+        },
       })),
-      customQuestions: customFields.map((field) => ({
+      customQuestions: customFields.map((field, index) => ({
         key: normalizeKey(field.label),
         label: field.label,
         type: mapFieldType(field.type),
+        order: activeFixFields.length + index + 1,
+        isFixed: false,
+        isActive: true,
+        validation: {
+          required: Boolean(field.required),
+        },
         ...(supportsOptions(field.type) && (field.options ?? []).length > 0
-          ? { options: (field.options ?? []).map((option) => option.trim()).filter(Boolean) }
+          ? {
+              options: (field.options ?? [])
+                .map((option) => option.trim())
+                .filter(Boolean)
+                .map((option) => ({
+                  value: option,
+                  label: option,
+                  isDefault: false,
+                })),
+            }
           : {}),
       })),
       publish: true,
@@ -483,11 +521,8 @@ const RegistrationFormPage = () => {
       }
     >
       <div className="mx-auto max-w-[1280px] space-y-10">
-        {!event ? (
+        {isLoadingForm || loadError ? (
           <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-            <p className="text-sm font-semibold">
-              Event belum ditemukan di daftar. Pastikan URL event ID sudah benar.
-            </p>
             {isLoadingForm ? (
               <p className="mt-3 text-xs font-medium text-amber-700">Loading form dari server...</p>
             ) : null}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { DashboardLayout } from "@/layouts/DashboardLayout";
+import MainDashboard from "@/layouts/MainDashboard";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -117,7 +117,7 @@ export function Users() {
   const endItem   = Math.min(page * limit, total);
 
   return (
-    <DashboardLayout>
+    <MainDashboard>
       <div className="space-y-6">
 
         {/* Header */}
@@ -291,6 +291,6 @@ export function Users() {
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleModalSuccess}
       />
-    </DashboardLayout>
+    </MainDashboard>
   );
 }

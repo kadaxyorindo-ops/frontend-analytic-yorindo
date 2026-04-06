@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Outlet } from "react-router-dom"; 
 import Navbar from "../components/ui/Navbar";
 import Sidebar from "../components/ui/Sidebar";
 
-const MainDashboard = () => {
+type MainDashboardProps = {
+  children?: ReactNode;
+};
+
+const MainDashboard = ({ children }: MainDashboardProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -19,9 +23,7 @@ const MainDashboard = () => {
       >
         <Navbar />
 
-        <div className="p-6">
-          <Outlet />
-        </div>
+        <div className="p-6">{children ?? <Outlet />}</div>
       </div>
     </div>
   );

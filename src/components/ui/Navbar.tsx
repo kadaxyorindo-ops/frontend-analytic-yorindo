@@ -1,6 +1,11 @@
 import { Bell, Settings, HelpCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
+  const { user } = useAuth();
+  const displayName = user?.name ?? "Guest";
+  const roleLabel = user?.role ? user.role.replace("_", " ") : "Visitor";
+
   return (
     <div className="flex items-center justify-between px-6 py-3 bg-white border-b">
       {/* Left */}
@@ -20,11 +25,11 @@ const Navbar = () => {
 
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center text-white">
-            U
+            {displayName.slice(0, 1).toUpperCase()}
           </div>
           <div className="text-sm">
-            <div className="font-medium">Udin sapu jagad</div>
-            <div className="text-gray-500">Super Admin</div>
+            <div className="font-medium">{displayName}</div>
+            <div className="text-gray-500">{roleLabel}</div>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { DashboardLayout } from "@/layouts/DashboardLayout";
+import MainDashboard from "@/layouts/MainDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -61,7 +61,7 @@ const statusStyles: Record<string, string> = {
 
 export function Events() {
   return (
-    <DashboardLayout>
+    <MainDashboard>
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex justify-between items-start pb-5 border-b border-slate-100">
@@ -283,6 +283,6 @@ export function Events() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </MainDashboard>
   );
 }

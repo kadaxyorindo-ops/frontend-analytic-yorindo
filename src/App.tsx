@@ -1,6 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Login } from "@/pages/auth/Login";
-import EventListPage from "@/pages/EventListPage";
+import MainDashboard from "@/layouts/MainDashboard";
+import DashboardHome from "@/pages/DashboardHome";
+import Events from "@/pages/event-management/Events";
+import EventDetail from "@/pages/event-management/EventDetail";
+import Attendees from "@/pages/Attendees";
+import Exhibitors from "@/pages/Exhibitors";
+import Reports from "@/pages/Reports";
+import Settings from "@/pages/Settings";
 import CreateEventPage from "@/pages/CreateEventPage";
 import EditEventPage from "@/pages/EditEventPage";
 import RegistrationFormPage from "@/pages/RegistrationFormPage";
@@ -15,7 +22,15 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Navigate to="/events" replace />} />
-        <Route path="/events" element={<EventListPage />} />
+        <Route element={<MainDashboard />}>
+          <Route path="/dashboard" element={<DashboardHome />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/events/:eventId" element={<EventDetail />} />
+          <Route path="/exhibitors" element={<Exhibitors />} />
+          <Route path="/attendees" element={<Attendees />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
         <Route path="/events/create" element={<CreateEventPage />} />
         <Route path="/events/edit/:id" element={<EditEventPage />} />
         <Route
