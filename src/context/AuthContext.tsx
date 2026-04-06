@@ -20,6 +20,8 @@ export interface AuthUser {
   exhibitor_id?: string;
   company_name?: string;
   phone?: string;
+  created_at?: string;
+  updated_at?: string;
   organizationName: string | null;
   lastLoginAt: string | null;
 }

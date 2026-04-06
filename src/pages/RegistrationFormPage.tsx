@@ -189,6 +189,9 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
         }>
         fixed_fields?: Array<{
           key?: string
@@ -196,6 +199,9 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
         }>
         customQuestions?: Array<{
           key?: string
@@ -203,7 +209,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         custom_questions?: Array<{
           key?: string
@@ -211,7 +225,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         customFields?: Array<{
           key?: string
@@ -219,7 +241,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         custom_fields?: Array<{
           key?: string
@@ -227,7 +257,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         questions?: Array<{
           key?: string
@@ -235,7 +273,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         publish?: boolean
         _id?: string
@@ -277,11 +323,20 @@ const RegistrationFormPage = () => {
       const customFields = customSource
         .filter((field) => field?.isActive !== false)
         .map((field, index) => {
-          const rawOptions = field.options ?? []
+          const rawOptions = (field.options ?? []) as Array<
+            string | { value?: string; label?: string }
+          >
           const options = rawOptions.map((option) => {
             if (typeof option === "string") return option
             return option.value ?? option.label ?? ""
           }).filter(Boolean)
+          const condition =
+            field.condition?.dependsOn && field.condition?.value
+              ? {
+                  dependsOn: field.condition.dependsOn,
+                  value: field.condition.value,
+                }
+              : undefined
 
           return {
             id: field.key ?? field.name ?? `custom-${index + 1}`,
@@ -290,6 +345,8 @@ const RegistrationFormPage = () => {
             required: Boolean(field.required ?? field.validation?.required),
             options,
             order: field.order ?? fixedFields.length + index + 1,
+            placeholder: field.placeholder,
+            condition,
           }
         })
 

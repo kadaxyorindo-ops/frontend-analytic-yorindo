@@ -25,10 +25,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-<<<<<<< HEAD
-=======
         /* [.border-b]:pb-4 tetap dibiarkan agar jika kamu menambah border manual di komponen lain, paddingnya tetap terjaga */
->>>>>>> feat(login)-UI-frontend
         "group/card-header @container/card-header grid auto-rows-min items-start gap-1 rounded-t-xl px-4 group-data-[size=sm]/card:px-3 has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-4 group-data-[size=sm]/card:[.border-b]:pb-3",
         className
       )}
@@ -42,11 +39,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-<<<<<<< HEAD
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
-=======
         "text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
->>>>>>> feat(login)-UI-frontend
         className
       )}
       {...props}
@@ -92,12 +85,8 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-footer"
       className={cn(
-<<<<<<< HEAD
-        "flex items-center rounded-b-xl border-t bg-muted/50 p-4 group-data-[size=sm]/card:p-3",
-=======
         /* MENGHAPUS: border-t */
         "flex items-center rounded-b-xl bg-muted/50 p-4 group-data-[size=sm]/card:p-3",
->>>>>>> feat(login)-UI-frontend
         className
       )}
       {...props}
@@ -113,8 +102,4 @@ export {
   CardAction,
   CardDescription,
   CardContent,
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> feat(login)-UI-frontend

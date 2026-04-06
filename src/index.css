@@ -31,6 +31,11 @@
     border-radius: 8px;
   }
 
+  .shadow-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Geist Variable", sans-serif;
@@ -152,9 +157,6 @@
   }
   html {
     @apply font-sans;
-  }
-  .shadow-card {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 }
 

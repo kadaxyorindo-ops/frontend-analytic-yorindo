@@ -1,15 +1,6 @@
-// store/formBuilderSlice.ts
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
-import type {
-  FormBuilderData,
-} from "../types/formBuilder";
-
-type FormBuilderResponse = {
-  success: boolean;
-  message: string;
-  data: FormBuilderData;
-};
+import type { FormBuilderData } from "../types/formBuilder";
+import { api } from "@/services/api";
 
 interface FormBuilderState {
   data: FormBuilderData | null;
@@ -29,34 +20,19 @@ const initialState: FormBuilderState = {
 export const fetchFormBuilder = createAsyncThunk(
   "formBuilder/fetchFormBuilder",
   async (slug: string, { rejectWithValue }) => {
-    try {
-      if (!slug) {
-        return rejectWithValue("Missing event slug");
-      }
-
-      const response = await axios.get<FormBuilderResponse>(
-        `/api/v1/form-builder/slug/${encodeURIComponent(slug)}`,
-        { headers: { "Content-Type": "application/json" } },
-      );
-
-      if (!response.data.success) {
-        return rejectWithValue(response.data.message || "Failed to fetch form");
-      }
-
-      return response.data.data;
-    } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const message =
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to fetch form builder";
-        return rejectWithValue(message);
-      }
-
-      const message =
-        error instanceof Error ? error.message : "Failed to fetch form builder";
-      return rejectWithValue(message);
+    if (!slug) {
+      return rejectWithValue("Missing event slug");
     }
+
+    const result = await api.get<FormBuilderData>(
+      `/api/v1/form-builder/slug/${encodeURIComponent(slug)}`
+    );
+
+    if (result.error || !result.data) {
+      return rejectWithValue(result.message || "Failed to fetch form");
+    }
+
+    return result.data;
   },
 );
 

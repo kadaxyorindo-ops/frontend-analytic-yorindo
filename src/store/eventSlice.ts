@@ -10,6 +10,7 @@ interface EventApiItem {
   description?: string
   status?: string
   event_date?: string
+  eventDate?: string
   date?: string
   start_at?: string
   starts_at?: string

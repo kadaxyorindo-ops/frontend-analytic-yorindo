@@ -1,7 +1,7 @@
 import { Calendar, LayoutDashboard, LogOut, User, ClipboardList } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
-import type { User as AppUser } from "@/types/user"
+import type { AuthUser } from "@/context/AuthContext"
 
 type MenuItem = {
   path: string
@@ -12,7 +12,7 @@ type MenuItem = {
 
 interface SidebarProps {
   isOpen: boolean
-  user: AppUser | null
+  user: AuthUser | null
   onLogout: () => void
 }
 
@@ -28,8 +28,13 @@ const Sidebar = ({ isOpen, user, onLogout }: SidebarProps) => {
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`)
 
+  const normalizedRole =
+    user?.role === "super_admin" || user?.role === "exhibitor"
+      ? user.role
+      : "exhibitor"
+
   const filteredItems = menuItems.filter((item) =>
-    item.roles.includes(user?.role ?? "exhibitor")
+    item.roles.includes(normalizedRole)
   )
 
   return (
@@ -45,12 +50,12 @@ const Sidebar = ({ isOpen, user, onLogout }: SidebarProps) => {
               Yorindo EMS
             </p>
             <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#9AA5B5]">
-              {user?.role === "super_admin"
+              {normalizedRole === "super_admin"
                 ? "Super Admin Panel"
                 : "Exhibition Management"}
             </p>
             <p className="mt-2 text-sm text-[#7A8799]">
-              {user?.role === "super_admin" ? user?.name : user?.company_name}
+              {normalizedRole === "super_admin" ? user?.name : user?.company_name}
             </p>
           </div>
         </div>
