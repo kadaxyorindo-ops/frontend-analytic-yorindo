@@ -28,7 +28,7 @@ const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
   return (
     <div
       className={`fixed top-0 left-0 h-screen z-50 transition-all duration-300
-      ${collapsed ? "w-20" : "w-60"}`}
+      ${collapsed ? "w-20" : "w-48"}`}
     >
       {/* WRAPPER */}
       <div className="h-full p-3 bg-[#F3F4F6]">
