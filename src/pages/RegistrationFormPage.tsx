@@ -269,6 +269,9 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
         }>
         fixed_fields?: Array<{
           key?: string
@@ -276,6 +279,9 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
         }>
         customQuestions?: Array<{
           key?: string
@@ -283,7 +289,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         custom_questions?: Array<{
           key?: string
@@ -291,7 +305,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         customFields?: Array<{
           key?: string
@@ -299,7 +321,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         custom_fields?: Array<{
           key?: string
@@ -307,7 +337,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         questions?: Array<{
           key?: string
@@ -315,7 +353,15 @@ const RegistrationFormPage = () => {
           label?: string
           type?: string
           required?: boolean
-          options?: string[]
+          options?: Array<string | { value?: string; label?: string }>
+          order?: number
+          isActive?: boolean
+          validation?: { required?: boolean }
+          placeholder?: string
+          condition?: {
+            dependsOn?: string
+            value?: string
+          }
         }>
         publish?: boolean
         _id?: string

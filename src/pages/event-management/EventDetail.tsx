@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
 import { formatDate, formatNumber } from "@/utils/formatters";
@@ -22,7 +23,8 @@ type FormBuilderEvent = {
 };
 
 const EventDetail = () => {
-  const { eventId } = useParams<{ eventId: string }>();
+  const { eventId } = useParams<{ eventId: string }>();
+
   const dispatch = useDispatch<AppDispatch>();
   const { events, isLoading } = useSelector((state: RootState) => state.events);
   const { participants } = useSelector((state: RootState) => state.participants);

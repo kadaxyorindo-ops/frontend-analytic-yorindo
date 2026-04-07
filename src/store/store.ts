@@ -5,6 +5,7 @@ import participantReducer from "./participantSlice"
 import registrationFormReducer from "./registrationFormSlice"
 import surveyFormReducer from "./surveyFormSlice"
 import surveyResponseReducer from "./surveyResponseSlice"
+import formBuilderReducer from "./formBuilderSlice"
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     surveyForms: surveyFormReducer,
     participants: participantReducer,
     surveyResponses: surveyResponseReducer,
+    formBuilder: formBuilderReducer,
   },
 })
 

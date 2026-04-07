@@ -14,6 +14,8 @@ import RegistrationFormPage from "@/pages/RegistrationFormPage";
 import SurveyFormPage from "@/pages/SurveyFormPage";
 import AnalyticsDashboardPage from "@/pages/AnalyticsDashboardPage";
 import { NotFound } from "@/pages/NotFound";
+import RegistrationForm from "@/pages/registration-visitor/index";
+import VisitorEventRegistrationPage from "@/pages/event-registration/VisitorEventRegistrationPage";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Navigate to="/events" replace />} />
+        <Route path="/visitor" element={<RegistrationForm />} />
+        <Route path="/register/:slug" element={<VisitorEventRegistrationPage />} />
         <Route element={<MainDashboard />}>
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/events" element={<Events />} />
