@@ -1,13 +1,11 @@
-import { useMemo, useState, useEffect } from "react";
-import { Calendar, MapPin, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Calendar, FilePlus2, MapPin } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import type { AppDispatch } from "@/store/store";
 import { useEvents } from "@/hooks/useEvents";
 import { fetchEvents } from "@/store/eventSlice";
 import { formatDate } from "@/utils/formatters";
-import { api } from "@/services/api";
-import { useAuth } from "@/hooks/useAuth";
 
 type EventStatus = "Published" | "Ongoing" | "Draft" | "Closed";
 
@@ -23,93 +21,29 @@ type TabType = (typeof tabs)[number];
 
 const Events = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { user } = useAuth();
   const { events, isLoading } = useEvents();
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabType>("All");
-  const [showModal, setShowModal] = useState(false);
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState("");
-
-  const [newEvent, setNewEvent] = useState({
-    title: "",
-    eventDate: "",
-    location: "",
-    industryName: "",
-    industryRefId: "",
-  });
-
-  const handleCreateEvent = () => {
-    void submitCreateEvent();
-  };
-
-  const submitCreateEvent = async () => {
-    if (!newEvent.title.trim()) {
-      setCreateError("Judul event wajib diisi.");
-      return;
-    }
-
-    if (!newEvent.location.trim()) {
-      setCreateError("Lokasi event wajib diisi.");
-      return;
-    }
-
-    if (!newEvent.eventDate) {
-      setCreateError("Tanggal event wajib diisi.");
-      return;
-    }
-
-    if (!user?.id) {
-      setCreateError("User belum login, createdBy tidak ditemukan.");
-      return;
-    }
-
-    setCreateError("");
-    setIsCreating(true);
-
-    const payload = {
-      title: newEvent.title.trim(),
-      industry: {
-        refId: newEvent.industryRefId.trim() || undefined,
-        name: newEvent.industryName.trim() || undefined,
-      },
-      location: newEvent.location.trim(),
-      eventDate: new Date(newEvent.eventDate).toISOString(),
-      createdBy: user.id,
-    };
-
-    const result = await api.post("/api/v1/events", payload);
-    setIsCreating(false);
-
-    if (result.error) {
-      setCreateError(result.message);
-      return;
-    }
-
-    setShowModal(false);
-    setNewEvent({
-      title: "",
-      eventDate: "",
-      location: "",
-      industryName: "",
-      industryRefId: "",
-    });
-    void dispatch(fetchEvents());
-  };
 
   useEffect(() => {
     void dispatch(fetchEvents());
   }, [dispatch]);
 
+  useEffect(() => {
+    setVisibleCards([]);
+    const timer = setTimeout(() => {
+      setVisibleCards(currentEvents.map((_, index) => index));
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [currentPage, activeTab]);
+
   const eventsPerPage = 9;
 
   const mappedEvents = useMemo(() => {
     return events.map((event) => {
-      const pct =
-        event.max_capacity > 0
-          ? Math.round((event.registered_count / event.max_capacity) * 100)
-          : 0;
+      const pct = event.max_capacity > 0 ? Math.round((event.registered_count / event.max_capacity) * 100) : 0;
 
       const statusLabel: EventStatus =
         event.status === "published"
@@ -132,48 +66,24 @@ const Events = () => {
   }, [events]);
 
   const filteredEvents =
-    activeTab === "All"
-      ? mappedEvents
-      : mappedEvents.filter((event) => event.status === activeTab);
+    activeTab === "All" ? mappedEvents : mappedEvents.filter((event) => event.status === activeTab);
 
-  const totalPages = Math.ceil(filteredEvents.length / eventsPerPage);
-
+  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / eventsPerPage));
   const startIndex = (currentPage - 1) * eventsPerPage;
-  const currentEvents = filteredEvents.slice(
-    startIndex,
-    startIndex + eventsPerPage
-  );
-
-  // ✅ SCROLL ANIMATION EFFECT
-  useEffect(() => {
-    setVisibleCards([]);
-    const timer = setTimeout(() => {
-      setVisibleCards(currentEvents.map((_, i) => i));
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [currentPage, activeTab]);
-
+  const currentEvents = filteredEvents.slice(startIndex, startIndex + eventsPerPage);
   return (
-    <div className="bg-[#F3F4F6] min-h-screen px-6 py-8">
-      
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold text-[#0A2647]">
-          Events
-        </h1>
-
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-[#0A2647] hover:bg-[#133A6F] transition text-white px-5 py-2.5 rounded-[12px] shadow-[0_6px_16px_rgba(10,38,71,0.2)]"
-        >
-          <Plus size={16} />
-          Create Event
-        </button>
+    <div className="min-h-screen space-y-8 rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-8 shadow-[0_14px_30px_rgba(10,38,71,0.05)]">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#94A3B8]">Event Workspace</p>
+          <h1 className="text-[2.15rem] font-bold tracking-[-0.04em] text-[#0A2647]">Event Management</h1>
+          <p className="max-w-2xl text-sm leading-7 text-[#5B6B7F]">
+            Kelola event yang sudah dibuat, cek progres registrasi, buka detail event, dan masuk ke form builder registration langsung dari daftar event.
+          </p>
+        </div>
       </div>
 
-      {/* TABS */}
-      <div className="flex gap-3 mb-8 flex-wrap">
+      <div className="flex flex-wrap gap-3 rounded-[22px] border border-[#E3EAF5] bg-white p-3 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
         {tabs.map((tab) => (
           <button
             key={tab}
@@ -181,33 +91,31 @@ const Events = () => {
               setActiveTab(tab);
               setCurrentPage(1);
             }}
-            className={`px-4 py-2 rounded-[12px] text-sm transition
-              ${
-                activeTab === tab
-                  ? "bg-[#0A2647] text-white shadow"
-                  : "bg-[#EAF1FF] text-[#5B6B7F] hover:bg-[#DCE7FF]"
-              }`}
+            className={`rounded-[14px] px-4 py-2 text-sm font-semibold transition ${
+              activeTab === tab
+                ? "bg-[#0A2647] text-white shadow-[0_10px_18px_rgba(10,38,71,0.16)]"
+                : "bg-[#EDF3FF] text-[#5B6B7F] hover:bg-[#DCE7FF] hover:text-[#0A2647]"
+            }`}
           >
             {tab}
           </button>
         ))}
       </div>
 
-      {/* CARDS */}
-      <div className="grid xl:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         {isLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
+          Array.from({ length: 6 }).map((_, index) => (
             <div
-              key={`skeleton-${i}`}
-              className="bg-[#FFFFFF] p-6 rounded-[24px] border border-[#D7E1F0] shadow-[0_12px_32px_rgba(10,38,71,0.08)] animate-pulse"
+              key={`skeleton-${index}`}
+              className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)] animate-pulse"
             >
               <div className="h-6 w-24 rounded-full bg-slate-200" />
-              <div className="mt-4 h-5 w-3/4 bg-slate-200 rounded" />
+              <div className="mt-4 h-5 w-3/4 rounded bg-slate-200" />
               <div className="mt-4 space-y-2">
-                <div className="h-4 w-2/3 bg-slate-200 rounded" />
-                <div className="h-4 w-1/2 bg-slate-200 rounded" />
+                <div className="h-4 w-2/3 rounded bg-slate-200" />
+                <div className="h-4 w-1/2 rounded bg-slate-200" />
               </div>
-              <div className="mt-6 h-8 w-full bg-slate-200 rounded" />
+              <div className="mt-6 h-8 w-full rounded bg-slate-200" />
             </div>
           ))
         ) : currentEvents.length === 0 ? (
@@ -215,200 +123,94 @@ const Events = () => {
             Belum ada event untuk ditampilkan.
           </div>
         ) : (
-          currentEvents.map((event, i) => (
-          <div
-            key={event.id}
-            className={`bg-[#FFFFFF] p-6 rounded-[24px] border border-[#D7E1F0]
-            shadow-[0_12px_32px_rgba(10,38,71,0.08)]
-            transition-all duration-500
-            hover:shadow-[0_16px_40px_rgba(10,38,71,0.12)]
-            hover:-translate-y-1
-            ${
-              visibleCards.includes(i)
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-6"
-            }`}
-          >
-            <span
-              className={`text-xs px-2 py-1 rounded-full font-medium ${statusColor[event.status]}`}
+          currentEvents.map((event, index) => (
+            <div
+              key={event.id}
+              className={`rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(10,38,71,0.12)] ${
+                visibleCards.includes(index) ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+              }`}
             >
-              {event.status}
-            </span>
+              <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusColor[event.status]}`}>
+                {event.status}
+              </span>
 
-            <h2 className="mt-4 font-semibold text-lg text-[#0A2647]">
-              {event.title}
-            </h2>
+              <h2 className="mt-4 text-lg font-semibold text-[#0A2647]">{event.title}</h2>
 
-            <div className="mt-4 space-y-2 text-sm text-[#6B7280]">
-              <div className="flex items-center gap-2">
-                <Calendar size={14} />
-                {event.date}
+              <div className="mt-4 space-y-2 text-sm text-[#6B7280]">
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} />
+                  {event.date}
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin size={14} />
+                  {event.location}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <MapPin size={14} />
-                {event.location}
+
+              <div className="mt-5">
+                <div className="mb-1 flex justify-between text-xs text-[#6B7280]">
+                  <span>Registration</span>
+                  <span>{event.progress}%</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-[#E5E7EB]">
+                  <div
+                    className="h-2 rounded-full bg-[#3B82F6] transition-all duration-700"
+                    style={{ width: `${event.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Link
+                  to={`/events/${event.id}`}
+                  className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
+                >
+                  View Detail
+                </Link>
+                <Link
+                  to={`/events/${event.id}/registration-form`}
+                  className="inline-flex items-center justify-center gap-2 rounded-[14px] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,38,71,0.16)] transition hover:bg-[#133A6F]"
+                >
+                  <FilePlus2 size={16} />
+                  Create Form Builder Registration
+                </Link>
               </div>
             </div>
-
-            {/* PROGRESS */}
-            <div className="mt-5">
-              <div className="flex justify-between text-xs mb-1 text-[#6B7280]">
-                <span>Registration</span>
-                <span>{event.progress}%</span>
-              </div>
-
-              <div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-[#3B82F6] h-2 rounded-full transition-all duration-700"
-                  style={{ width: `${event.progress}%` }}
-                />
-              </div>
-            </div>
-
-            <Link
-              to={`/events/${event.id}`}
-              className="mt-6 block w-full border border-[#F97316] text-[#F97316] py-2 rounded-[12px] text-sm hover:bg-[#FFF7ED] transition text-center"
-            >
-              View Analytics
-            </Link>
-          </div>
           ))
         )}
       </div>
 
-      {/* PAGINATION */}
-      <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.max(prev - 1, 1))
-          }
-          className="px-3 py-1 border border-[#D7E1F0] rounded-[10px]"
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          className="rounded-[12px] border border-[#D7E1F0] bg-white px-4 py-2 text-sm font-medium text-[#43556E] transition hover:border-[#C9D7F3] hover:text-[#0A2647]"
         >
           Prev
         </button>
 
-        {Array.from({ length: totalPages }, (_, i) => i + 1)
-          .slice(currentPage - 2, currentPage + 1)
+        {Array.from({ length: totalPages }, (_, index) => index + 1)
+          .slice(Math.max(currentPage - 2, 0), Math.max(currentPage + 1, 3))
           .map((page) => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`px-3 py-1 rounded-[10px]
-                ${
-                  currentPage === page
-                    ? "bg-[#0A2647] text-white"
-                    : "bg-[#EAF1FF] text-[#0A2647]"
-                }`}
+              className={`rounded-[12px] px-4 py-2 text-sm font-semibold ${
+                currentPage === page
+                  ? "bg-[#0A2647] text-white"
+                  : "bg-[#EAF1FF] text-[#0A2647] hover:bg-[#DCE7FF]"
+              }`}
             >
               {page}
             </button>
           ))}
 
         <button
-          onClick={() =>
-            setCurrentPage((prev) =>
-              Math.min(prev + 1, totalPages)
-            )
-          }
-          className="px-3 py-1 border border-[#D7E1F0] rounded-[10px]"
+          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          className="rounded-[12px] border border-[#D7E1F0] bg-white px-4 py-2 text-sm font-medium text-[#43556E] transition hover:border-[#C9D7F3] hover:text-[#0A2647]"
         >
           Next
         </button>
       </div>
-
-      {/* MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="w-full max-w-lg rounded-[24px] border border-[#D7E1F0] bg-[#FFFFFF] p-6 shadow-[0_12px_32px_rgba(10,38,71,0.2)] relative">
-
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-[#7B8CA3]"
-            >
-              <X size={20} />
-            </button>
-
-            <h2 className="text-xl font-semibold text-[#0A2647] mb-4">
-              Create New Event
-            </h2>
-
-            <div className="space-y-4">
-              <input
-                placeholder="Event Title"
-                value={newEvent.title}
-                onChange={(event) =>
-                  setNewEvent((current) => ({ ...current, title: event.target.value }))
-                }
-                disabled={isCreating}
-                className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
-              />
-
-              <input
-                type="datetime-local"
-                value={newEvent.eventDate}
-                onChange={(event) =>
-                  setNewEvent((current) => ({ ...current, eventDate: event.target.value }))
-                }
-                disabled={isCreating}
-                className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
-              />
-
-              <input
-                placeholder="Location"
-                value={newEvent.location}
-                onChange={(event) =>
-                  setNewEvent((current) => ({ ...current, location: event.target.value }))
-                }
-                disabled={isCreating}
-                className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
-              />
-
-              <input
-                placeholder="Industry Name (opsional)"
-                value={newEvent.industryName}
-                onChange={(event) =>
-                  setNewEvent((current) => ({ ...current, industryName: event.target.value }))
-                }
-                disabled={isCreating}
-                className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
-              />
-              <input
-                placeholder="Industry Ref ID (opsional)"
-                value={newEvent.industryRefId}
-                onChange={(event) =>
-                  setNewEvent((current) => ({ ...current, industryRefId: event.target.value }))
-                }
-                disabled={isCreating}
-                className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
-              />
-            </div>
-
-            {createError ? (
-              <p className="mt-4 text-sm text-red-600">{createError}</p>
-            ) : null}
-            {isCreating ? (
-              <p className="mt-3 text-sm text-[#6B7280]">Menyimpan event...</p>
-            ) : null}
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border border-[#D7E1F0] rounded-[12px]"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleCreateEvent}
-                disabled={isCreating}
-                className="px-4 py-2 bg-[#0A2647] text-white rounded-[12px] disabled:opacity-60"
-              >
-                {isCreating ? "Saving..." : "Save Event"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

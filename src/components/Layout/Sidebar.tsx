@@ -1,7 +1,13 @@
 import { Calendar, LayoutDashboard, LogOut, User, ClipboardList } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { useLocation, useNavigate } from "react-router-dom"
-import type { User as AppUser } from "@/types/user"
+type SidebarUser = {
+  name: string
+  email: string
+  role: "super_admin" | "exhibitor" | string
+  company_name?: string
+}
+
 
 type MenuItem = {
   path: string
@@ -12,7 +18,7 @@ type MenuItem = {
 
 interface SidebarProps {
   isOpen: boolean
-  user: AppUser | null
+  user: SidebarUser | null
   onLogout: () => void
 }
 
@@ -29,7 +35,7 @@ const Sidebar = ({ isOpen, user, onLogout }: SidebarProps) => {
     location.pathname === path || location.pathname.startsWith(`${path}/`)
 
   const filteredItems = menuItems.filter((item) =>
-    item.roles.includes(user?.role ?? "exhibitor")
+    item.roles.includes((user?.role as "super_admin" | "exhibitor" | undefined) ?? "exhibitor")
   )
 
   return (
@@ -63,10 +69,10 @@ const Sidebar = ({ isOpen, user, onLogout }: SidebarProps) => {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-sm font-semibold transition ${
+              className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left text-sm font-semibold transition ${
                 isActive(item.path)
-                  ? "bg-white text-[#2F5BFF] shadow-[0_8px_18px_rgba(47,91,255,0.08)]"
-                  : "text-[#5E6A7D] hover:bg-white hover:text-primary"
+                  ? "border-[#E4EBF7] bg-white text-[#2F5BFF] shadow-[0_8px_18px_rgba(47,91,255,0.08)]"
+                  : "border-transparent bg-transparent text-[#4F5D73] hover:border-[#E4EBF7] hover:bg-white hover:text-[#0A2647]"
               }`}
             >
               <Icon size={18} className={isActive(item.path) ? "text-[#2F5BFF]" : ""} />
@@ -87,7 +93,7 @@ const Sidebar = ({ isOpen, user, onLogout }: SidebarProps) => {
       </nav>
 
       <div className="mt-auto px-4 py-5">
-        <div className="mb-3 flex items-center gap-3 rounded-2xl border border-[#E2E8F3] bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <div className="mb-3 flex items-center gap-3 rounded-2xl border border-[#DCE5F2] bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
               <User size={18} />
@@ -100,7 +106,7 @@ const Sidebar = ({ isOpen, user, onLogout }: SidebarProps) => {
         </div>
         <button
           onClick={onLogout}
-          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-primary px-4 py-4 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(10,38,71,0.18)] transition hover:bg-primary-light"
+          className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#0A2647] bg-[#0A2647] px-4 py-4 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(10,38,71,0.18)] transition hover:bg-[#133A6F] hover:text-white"
           title="Logout"
         >
           <LogOut size={18} />

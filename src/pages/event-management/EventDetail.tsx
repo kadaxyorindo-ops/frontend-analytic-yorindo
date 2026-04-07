@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
 import { formatDate, formatNumber } from "@/utils/formatters";
@@ -22,8 +22,7 @@ type FormBuilderEvent = {
 };
 
 const EventDetail = () => {
-  const { eventId } = useParams<{ eventId: string }>();
-  const navigate = useNavigate();
+  const { eventId } = useParams<{ eventId: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const { events, isLoading } = useSelector((state: RootState) => state.events);
   const { participants } = useSelector((state: RootState) => state.participants);
@@ -137,7 +136,7 @@ const EventDetail = () => {
       <aside className="space-y-5">
         <div className="rounded-[20px] border border-[#D7E1F0] bg-white p-4 shadow-[0_10px_24px_rgba(10,38,71,0.08)]">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
-            Event Detail
+            Event Management
           </p>
           <h2 className="mt-3 text-lg font-semibold text-[#0A2647]">
             {eventTitle}
