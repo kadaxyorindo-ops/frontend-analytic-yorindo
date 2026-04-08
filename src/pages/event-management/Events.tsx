@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import type { AppDispatch } from "@/store/store";
 import { useEvents } from "@/hooks/useEvents";
-import { fetchEvents } from "@/store/eventSlice";
+import { fetchEvents, addEvent } from "@/store/eventSlice";
 import { formatDate } from "@/utils/formatters";
 import { api } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,64 +38,74 @@ const Events = () => {
     location: "",
     industryName: "",
     industryRefId: "",
+    description: "",
   });
 
-  const handleCreateEvent = () => {
-    void submitCreateEvent();
-  };
-
-  const submitCreateEvent = async () => {
-    if (!newEvent.title.trim()) {
-      setCreateError("Judul event wajib diisi.");
-      return;
-    }
-
-    if (!newEvent.location.trim()) {
-      setCreateError("Lokasi event wajib diisi.");
-      return;
-    }
-
-    if (!newEvent.eventDate) {
-      setCreateError("Tanggal event wajib diisi.");
+  const handleCreateEvent = async () => {
+    if (!newEvent.title.trim() || !newEvent.eventDate || !newEvent.location.trim()) {
+      setCreateError("Isi semua field yang wajib ya!");
       return;
     }
 
     if (!user?.id) {
-      setCreateError("User belum login, createdBy tidak ditemukan.");
+      setCreateError("Sesi login berakhir. Silakan login ulang.");
       return;
     }
 
-    setCreateError("");
     setIsCreating(true);
+    setCreateError("");
 
-    const payload = {
-      title: newEvent.title.trim(),
-      industry: {
-        refId: newEvent.industryRefId.trim() || undefined,
-        name: newEvent.industryName.trim() || undefined,
-      },
-      location: newEvent.location.trim(),
-      eventDate: new Date(newEvent.eventDate).toISOString(),
-      createdBy: user.id,
-    };
+    try {
+      // 1. Payload sesuai saran Backend (Zod Schema)
+      const payload = {
+        title: newEvent.title.trim(),
+        description: newEvent.description.trim() || null,
+        location: newEvent.location.trim(),
+        eventDate: new Date(newEvent.eventDate).toISOString(),
+        status: "draft", 
+        category: "General",
+        industry: {
+          refId: newEvent.industryRefId.trim() || null, 
+          name: newEvent.industryName.trim() || null, 
+        },
+        createdBy: user?.id,
+      };
 
-    const result = await api.post("/api/v1/events", payload);
-    setIsCreating(false);
+      const result = await api.post<any>("/api/v1/events", payload);
 
-    if (result.error) {
-      setCreateError(result.message);
-      return;
+      if (result.error) {
+        setCreateError(`Gagal: ${result.message}`);
+        setIsCreating(false);
+        return;
+      }
+
+      if (result.data) {
+        const rawData = result.data;
+        // 2. Mapping agar sesuai interface Event di Redux
+        const normalizedNewEvent = {
+          event_id: rawData._id,
+          title: rawData.title,
+          event_date: rawData.event_date || rawData.eventDate,
+          location: typeof rawData.location === 'string' ? rawData.location : rawData.location?.name,
+          status: "draft",
+          exhibitor_id: rawData.exhibitor_id ?? "super_admin",
+          description: rawData.description ?? "",
+          max_capacity: rawData.max_capacity ?? 0,
+          registered_count: 0,
+        };
+
+        dispatch(addEvent(normalizedNewEvent as any));
+      }
+
+      // 3. Reset UI
+      setIsCreating(false);
+      setShowModal(false);
+      setNewEvent({ title: "", eventDate: "", location: "", industryName: "", industryRefId: "", description: "" });
+      alert("Event berhasil dibuat! 🚀"); // Pindahkan alert ke sini
+    } catch (err) {
+      setCreateError("Terjadi kesalahan sistem.");
+      setIsCreating(false);
     }
-
-    setShowModal(false);
-    setNewEvent({
-      title: "",
-      eventDate: "",
-      location: "",
-      industryName: "",
-      industryRefId: "",
-    });
-    void dispatch(fetchEvents());
   };
 
   useEffect(() => {
@@ -269,7 +279,7 @@ const Events = () => {
               to={`/events/${event.id}`}
               className="mt-6 block w-full border border-[#F97316] text-[#F97316] py-2 rounded-[12px] text-sm hover:bg-[#FFF7ED] transition text-center"
             >
-              View Analytics
+              Detail Event
             </Link>
           </div>
           ))
@@ -382,6 +392,16 @@ const Events = () => {
                 className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2"
               />
             </div>
+            <textarea
+              placeholder="Event Description (opsional)"
+              value={newEvent.description}
+              onChange={(event) =>
+                setNewEvent((current) => ({ ...current, description: event.target.value }))
+              }
+              disabled={isCreating}
+              rows={4} // Tinggi awal box (sekitar 4 baris)
+              className="w-full border border-[#D7E1F0] rounded-[12px] px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#0A2647] placeholder:text-[#7B8CA3] text-sm"
+            />
 
             {createError ? (
               <p className="mt-4 text-sm text-red-600">{createError}</p>

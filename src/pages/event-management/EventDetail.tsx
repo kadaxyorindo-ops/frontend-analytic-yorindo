@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/store/store";
 import { formatDate, formatNumber } from "@/utils/formatters";
-import { fetchEvents } from "@/store/eventSlice";
+import { fetchEvents, updateEvent, deleteEvent } from "@/store/eventSlice";
 import { api } from "@/services/api";
 
 type FormBuilderEvent = {
@@ -29,21 +29,32 @@ const EventDetail = () => {
   const { participants } = useSelector((state: RootState) => state.participants);
   const { responses } = useSelector((state: RootState) => state.surveyResponses);
 
-  const event = events.find((item) => item.event_id === eventId);
+  const event = useMemo(() => events.find((item) => item.event_id === eventId), [events, eventId]);
   const [detail, setDetail] = useState<FormBuilderEvent | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState("");
+  
+// State form untuk update
+  const [isEdit, setIsEdit] = useState(false);
+  const [formData, setFormData] = useState({
+  title: "",
+  location: "",
+  status: "",
+  event_date: "",
+});
 
   useEffect(() => {
-    if (!event && !isLoading) {
+    if (events.length === 0 && !isLoading) {
       void dispatch(fetchEvents());
     }
-  }, [dispatch, event, isLoading]);
+  }, [dispatch, events.length, isLoading]);
 
   useEffect(() => {
     if (!eventId) return;
+    void loadDetail();
+  }, [eventId]);
 
-    const loadDetail = async () => {
+  const loadDetail = async () => {
       setIsLoadingDetail(true);
       setDetailError("");
       const result = await api.get<FormBuilderEvent>(
@@ -58,10 +69,78 @@ const EventDetail = () => {
       }
 
       setDetail(result.data ?? null);
+  };
+
+  // Sync form data saat event ditemukan
+  useEffect(() => {
+    if (event) {
+      setFormData({
+        title: event.title,
+        location: event.location,
+        status: event.status,
+        event_date: event.event_date,
+      });
+    }
+  }, [event]);
+
+ const handleUpdate = async () => {
+    if (!eventId) return;
+    if (!window.confirm("Simpan perubahan untuk event ini?")) return;
+
+    // Mapping status frontend ke enum backend
+    const statusMap: Record<string, string> = {
+      "published": "registration",
+      "draft": "draft",
+      "ongoing": "ongoing",
+      "closed": "done",
     };
 
+    const payload = {
+      title: formData.title.trim(),
+      location: formData.location.trim(),
+      status: statusMap[formData.status.toLowerCase()] || "draft", 
+      eventDate: new Date(formData.event_date).toISOString(),
+    };
+
+    // Pake PATCH karena backend controller lu handle partial update
+    const result = await api.patch<any>(`/api/v1/events/${eventId}`, payload);
+
+    if (result.error) {
+      alert("Gagal update: " + result.message);
+      return;
+    }
+
+    dispatch(updateEvent({ 
+      event_id: eventId, 
+      updates: {
+        ...formData,
+        event_id: eventId
+      } as any
+    }));
+
     void loadDetail();
-  }, [eventId]);
+    alert("Event berhasil diupdate 🚀");
+    setIsEdit(false);
+  };
+
+  const handleDelete = async () => {
+    if (!eventId) return;
+    if (!window.confirm("Yakin mau hapus event ini?")) return;
+
+    // 1. Consume API DELETE
+    const result = await api.delete<any>(`/api/v1/events/${eventId}`);
+    
+    if (result.error) {
+      alert("Gagal hapus: " + result.message);
+      return;
+    }
+
+    // 2. Hapus dari Redux Store
+    dispatch(deleteEvent(eventId));
+
+    alert("Event berhasil dihapus");
+    navigate("/events");
+  };
 
   const metrics = useMemo(() => {
     if (!eventId) {
@@ -227,19 +306,74 @@ const EventDetail = () => {
       <div className="space-y-8">
         <div className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]">
           <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex gap-2">
+              {!isEdit ? (
+                <button
+                  onClick={() => setIsEdit(true)}
+                  className="px-4 py-2 rounded-[10px] bg-[#0A2647] text-white text-sm"
+                >
+                  Edit
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleUpdate}
+                    className="px-4 py-2 rounded-[10px] bg-[#22C55E] text-white text-sm"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setIsEdit(false)}
+                    className="px-4 py-2 rounded-[10px] border border-[#D7E1F0] text-sm"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-[10px] bg-[#FF4D4F] text-white text-sm"
+              >
+                Delete
+              </button>
+            </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
                 Ringkasan Event
               </p>
               <h1 className="mt-2 text-2xl font-semibold text-[#0A2647]">
-                {eventTitle}
+                {isEdit ? (
+                  <input
+                    value={formData.title}
+                    onChange={(e) =>
+                      setFormData({ ...formData, title: e.target.value })
+                    }
+                    className="mt-2 text-2xl font-semibold text-[#0A2647] border border-[#D7E1F0] rounded-[10px] px-3 py-2 w-full"
+                  />
+                ) : (
+                  <h1 className="mt-2 text-2xl font-semibold text-[#0A2647]">
+                    {eventTitle}
+                  </h1>
+                )}
               </h1>
               <p className="mt-2 text-sm text-[#6B7280]">
                 {event?.description ?? "Belum ada deskripsi event."}
               </p>
             </div>
             <div className="rounded-[16px] bg-[#EEF4FF] px-4 py-3 text-sm text-[#0A2647]">
-              {eventDate ? formatDate(eventDate) : "-"}
+              {isEdit ? (
+                <input
+                  type="date"
+                  value={formData.event_date ? formData.event_date.split('T')[0] : ""} 
+                  onChange={(e) =>
+                    setFormData({ ...formData, event_date: e.target.value })
+                  }
+                  className="bg-transparent border-b border-[#0A2647] outline-none"
+                />
+              ) : (
+                eventDate ? formatDate(eventDate) : "-"
+              )}
             </div>
           </div>
 
@@ -249,7 +383,17 @@ const EventDetail = () => {
                 Lokasi
               </div>
               <div className="mt-2 font-semibold text-[#0A2647]">
-                {eventLocation}
+                {isEdit ? (
+                  <input
+                    value={formData.location}
+                    onChange={(e) =>
+                      setFormData({ ...formData, location: e.target.value })
+                    }
+                    className="border border-[#D7E1F0] rounded-[10px] px-3 py-2 w-full"
+                  />
+                ) : (
+                  eventLocation
+                )}
               </div>
             </div>
             <div className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#5B6B7F]">
@@ -257,7 +401,22 @@ const EventDetail = () => {
                 Status
               </div>
               <div className="mt-2 font-semibold text-[#0A2647]">
-                {eventStatus}
+                {isEdit ? (
+                  <select
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
+                    className="border border-[#D7E1F0] rounded-[10px] px-3 py-2 w-full"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                ) : (
+                  eventStatus
+                )}
               </div>
             </div>
             <div className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#5B6B7F]">
