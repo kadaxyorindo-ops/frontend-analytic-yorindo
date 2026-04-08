@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import FormBuilder from "../../components/FormBuilder";
 import type { FormBuilderResponse } from "../../types/formBuilder";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
@@ -8,6 +8,8 @@ import { CheckCircle2, XCircle } from "lucide-react";
 
 export default function VisitorEventRegistrationPage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,6 +19,12 @@ export default function VisitorEventRegistrationPage() {
   const [isSubmitStatusOpen, setIsSubmitStatusOpen] = useState(false);
 
   const [data, setData] = useState<FormBuilderResponse["data"] | null>(null);
+  const [draftValues, setDraftValues] = useState<Record<string, unknown>>({});
+
+  useEffect(() => {
+    const navState = location.state as { values?: Record<string, unknown> } | null;
+    if (navState?.values) setDraftValues(navState.values);
+  }, [location.state]);
 
   useEffect(() => {
     if (!slug) return;
@@ -89,6 +97,21 @@ export default function VisitorEventRegistrationPage() {
       full: d.toLocaleString(),
     };
   }, [data?.event?.eventDate]);
+
+  const friendlySubmitError = useMemo(() => {
+    if (!submitError) return null;
+    const raw = submitError.trim();
+    if (!raw) return "Failed to submit registration.";
+    if (raw.startsWith("{") && raw.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(raw) as { message?: unknown };
+        if (parsed?.message) return String(parsed.message);
+      } catch {
+        // fall through
+      }
+    }
+    return submitError;
+  }, [submitError]);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!data) return;
@@ -198,30 +221,30 @@ export default function VisitorEventRegistrationPage() {
             </div>
           ) : null}
           <div className="p-10">
-            <div className="text-[#855300] text-xs font-semibold uppercase tracking-wide">
+            <div className="text-[#855300] text-base font-semibold uppercase tracking-wide">
               Participant Registration
             </div>
             <h1 className="mt-3 text-4xl font-extrabold">{data.event.title}</h1>
             {data.event.description ? (
-              <p className="mt-4 max-w-3xl text-sm text-[#B7C6E1]">
+              <p className="mt-4 max-w-3xl text-lg text-[#B7C6E1]">
                 {data.event.description}
               </p>
             ) : null}
-            <div className="mt-6 grid grid-cols-1 gap-3 text-sm text-[#B7C6E1] sm:grid-cols-3">
+            <div className="mt-6 grid grid-cols-1 gap-3 text-lg text-[#B7C6E1] sm:grid-cols-3">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-[#768EB4]">
+                <p className="text-base uppercase tracking-wider text-[#768EB4]">
                   Date
                 </p>
                 <p className="text-white">{dateTime?.date ?? "-"}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-[#768EB4]">
+                <p className="text-base uppercase tracking-wider text-[#768EB4]">
                   Time
                 </p>
                 <p className="text-white">{dateTime?.time ?? "-"}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-[#768EB4]">
+                <p className="text-base uppercase tracking-wider text-[#768EB4]">
                   Location
                 </p>
                 <p className="text-white">{data.event.location || "-"}</p>
@@ -231,9 +254,9 @@ export default function VisitorEventRegistrationPage() {
         </header>
 
         <Dialog open={isSubmitStatusOpen} onOpenChange={setIsSubmitStatusOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[min(92vw,520px)] max-w-none">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-2 font-sans text-xl leading-tight">
                 {submitSuccess ? (
                   <>
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -249,11 +272,13 @@ export default function VisitorEventRegistrationPage() {
             </DialogHeader>
 
             {submitSuccess ? (
-              <p className="text-sm text-slate-600">{submitSuccess}</p>
+              <div className="rounded-xl border border-green-200 bg-green-50 p-4 font-sans text-lg leading-relaxed text-green-800">
+                {submitSuccess}
+              </div>
             ) : (
-              <p className="text-sm text-slate-600">
-                {submitError || "Failed to submit registration."}
-              </p>
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 font-sans text-lg leading-relaxed text-red-800">
+                {friendlySubmitError || "Failed to submit registration."}
+              </div>
             )}
 
             <div className="flex justify-end pt-2">
@@ -267,6 +292,13 @@ export default function VisitorEventRegistrationPage() {
         <FormBuilder
           formBuilderData={data}
           onSubmit={handleSubmit}
+          defaultValues={draftValues}
+          onReview={(values) => {
+            setDraftValues(values);
+            navigate(`/register/${encodeURIComponent(slug ?? "")}/review`, {
+              state: { data, values },
+            });
+          }}
           isLoading={false}
           isSubmitting={isSubmitting}
         />

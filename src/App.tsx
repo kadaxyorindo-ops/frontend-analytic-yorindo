@@ -17,6 +17,7 @@ import AnalyticsDashboardPage from "@/pages/AnalyticsDashboardPage";
 import { NotFound } from "@/pages/NotFound";
 import RegistrationForm from "@/pages/registration-visitor/index";
 import VisitorEventRegistrationPage from "@/pages/event-registration/VisitorEventRegistrationPage";
+import RegistrationReviewPage from "@/pages/event-registration/RegistrationReviewPage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="/home" element={<Navigate to="/events" replace />} />
         <Route path="/visitor" element={<RegistrationForm />} />
         <Route path="/register/:slug" element={<VisitorEventRegistrationPage />} />
+        <Route path="/register/:slug/review" element={<RegistrationReviewPage />} />
         <Route element={<MainDashboard />}>
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/events" element={<Events />} />
