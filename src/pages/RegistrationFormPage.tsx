@@ -1129,7 +1129,7 @@ const RegistrationFormPage = () => {
                       <div className="space-y-3">
                         {(fieldDraft.options ?? []).length > 0 ? (
                           (fieldDraft.options ?? []).map((option, index) => (
-                            <div key={`${option}-${index}`} className="flex items-center gap-3">
+                            <div key={`option-${index}`} className="flex items-center gap-3">
                               <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#EEF4FF] text-sm font-bold text-[#2F5BFF]">
                                 {index + 1}
                               </div>

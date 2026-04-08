@@ -1,5 +1,12 @@
-import { ArrowLeft, CircleUserRound, Search, Settings } from "lucide-react";
-import { Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  CircleUserRound,
+  LogOut,
+  PanelLeft,
+  Search,
+  Settings,
+} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 type NavbarProps = {
@@ -7,10 +14,12 @@ type NavbarProps = {
     to: string;
     label?: string;
   };
+  onToggleSidebar?: () => void;
 };
 
-const Navbar = ({ backTo }: NavbarProps) => {
-  const { user } = useAuth();
+const Navbar = ({ backTo, onToggleSidebar }: NavbarProps) => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const displayName = user?.name ?? "Guest";
   const roleLabel =
     user?.role === "super_admin"
@@ -27,6 +36,16 @@ const Navbar = ({ backTo }: NavbarProps) => {
     <header className="sticky top-0 z-30 border-b border-[#D7E1F0] bg-white/95 px-6 py-4 backdrop-blur">
       <div className="flex items-center justify-between gap-6">
         <div className="flex min-w-0 items-center gap-3">
+          {onToggleSidebar ? (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#DCE5F2] bg-white text-[#5B6B7F] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:text-[#0A2647]"
+              title="Toggle sidebar"
+            >
+              <PanelLeft size={18} />
+            </button>
+          ) : null}
           {backTo ? (
             <Link
               to={backTo.to}
@@ -76,6 +95,17 @@ const Navbar = ({ backTo }: NavbarProps) => {
               <div className="text-[#7B8CA3]">{roleLabel}</div>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              navigate("/login", { replace: true });
+            }}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#DCE5F2] bg-white text-[#5B6B7F] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:text-[#0A2647]"
+            title="Logout"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </header>

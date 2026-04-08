@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { Copy, ExternalLink, FilePlus2, QrCode } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { ArrowLeft } from "lucide-react";
-import type { AppDispatch, RootState } from "@/store/store";
-import { formatDate, formatNumber } from "@/utils/formatters";
-import { fetchEvents } from "@/store/eventSlice";
 import { api } from "@/services/api";
+import { formatDate } from "@/utils/formatters";
 
 type EventIndustry = {
   refId?: string;
@@ -23,12 +20,11 @@ type EventDetailItem = {
   event_date?: string;
   location?: string;
   status?: string;
-  registrationForm?: Record<string, unknown>;
-};
-
-const getWebsiteOrigin = () => {
-  if (typeof window === "undefined") return null;
-  return window.location.origin;
+  registrationForm?: {
+    version?: number;
+    publishedAt?: string | null;
+    fields?: unknown[];
+  };
 };
 
 const getEventDate = (item?: EventDetailItem | null) =>
@@ -36,15 +32,19 @@ const getEventDate = (item?: EventDetailItem | null) =>
 
 const getStatusBadge = (status?: string) => {
   const normalized = status?.toLowerCase();
-  if (normalized === "published") {
+
+  if (normalized === "registration" || normalized === "published") {
     return { label: "Published", className: "bg-[#E6F9F0] text-[#22C55E]" };
   }
-  if (normalized === "closed") {
-    return { label: "Closed", className: "bg-[#F3F4F6] text-[#9CA3AF]" };
-  }
+
   if (normalized === "ongoing") {
     return { label: "Ongoing", className: "bg-[#EAF1FF] text-[#3B82F6]" };
   }
+
+  if (normalized === "closed" || normalized === "done" || normalized === "cancelled") {
+    return { label: "Closed", className: "bg-[#F3F4F6] text-[#9CA3AF]" };
+  }
+
   if (normalized === "draft") {
     return { label: "Draft", className: "bg-[#F3F4F6] text-[#6B7280]" };
   }
@@ -52,359 +52,263 @@ const getStatusBadge = (status?: string) => {
   return { label: status ?? "-", className: "bg-[#F3F4F6] text-[#6B7280]" };
 };
 
-const EventDetail = () => {
+export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
-
-  const dispatch = useDispatch<AppDispatch>();
-  const { events, isLoading } = useSelector((state: RootState) => state.events);
-  const { participants } = useSelector((state: RootState) => state.participants);
-  const { responses } = useSelector((state: RootState) => state.surveyResponses);
-
-  const event = events.find((item) => item.event_id === eventId);
-
   const [detail, setDetail] = useState<EventDetailItem | null>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const [detailError, setDetailError] = useState("");
-  const [isCopied, setIsCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!event && !isLoading) {
-      void dispatch(fetchEvents());
+    if (!eventId) {
+      setError("Event ID tidak ditemukan.");
+      return;
     }
-  }, [dispatch, event, isLoading]);
-
-  useEffect(() => {
-    if (!eventId) return;
 
     const loadDetail = async () => {
-      setIsLoadingDetail(true);
-      setDetailError("");
+      setIsLoading(true);
+      setError("");
 
       const cacheBuster = `ts=${Date.now()}`;
       const result = await api.get<EventDetailItem>(
         `/api/v1/events/${eventId}?${cacheBuster}`,
       );
 
-      setIsLoadingDetail(false);
+      setIsLoading(false);
 
-      if (result.error) {
-        setDetailError(result.message);
+      if (result.error || !result.data) {
+        setError(result.message || "Gagal memuat detail event.");
         setDetail(null);
         return;
       }
 
-      setDetail(result.data ?? null);
+      setDetail(result.data);
     };
 
     void loadDetail();
   }, [eventId]);
 
   useEffect(() => {
-    if (!isCopied) return;
-    const timer = window.setTimeout(() => setIsCopied(false), 1500);
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1600);
     return () => window.clearTimeout(timer);
-  }, [isCopied]);
+  }, [copied]);
 
-  const metrics = useMemo(() => {
-    if (!eventId) {
-      return {
-        registrations: 0,
-        capacity: 0,
-        attendance: 0,
-        attendanceRate: 0,
-        responses: 0,
-        averageRating: 0,
-        feedbacks: [] as string[],
-      };
-    }
-
-    const eventParticipants = participants.filter(
-      (participant) => participant.event_id === eventId,
-    );
-    const eventResponses = responses.filter((response) => response.event_id === eventId);
-
-    const attendance = eventParticipants.filter(
-      (participant) => participant.is_attended,
-    ).length;
-
-    const attendanceRate =
-      event?.registered_count && event.registered_count > 0
-        ? Math.round((attendance / event.registered_count) * 100)
-        : 0;
-
-    const averageRating =
-      eventResponses.length > 0
-        ? Math.round(
-            (eventResponses.reduce((acc, item) => acc + item.overall_rating, 0) /
-              eventResponses.length) *
-              10,
-          ) / 10
-        : 0;
-
-    const feedbacks = eventResponses
-      .map((response) => response.comment)
-      .filter(Boolean)
-      .slice(0, 4) as string[];
-
-    return {
-      registrations: event?.registered_count ?? 0,
-      capacity: event?.max_capacity ?? 0,
-      attendance,
-      attendanceRate,
-      responses: eventResponses.length,
-      averageRating,
-      feedbacks,
-    };
-  }, [event, eventId, participants, responses]);
-
-  const eventTitle = detail?.title ?? event?.title ?? "Event Detail";
-  const eventDate = getEventDate(detail) ?? event?.event_date ?? null;
-  const eventLocation = detail?.location ?? event?.location ?? "-";
-  const eventStatus = detail?.status ?? event?.status ?? "-";
-  const industryName = detail?.industry?.name ?? "-";
-  const eventSlug = detail?.slug ?? "-";
-
-  const { label: statusLabel, className: statusClassName } = getStatusBadge(eventStatus);
-
-  const registerPath = eventSlug && eventSlug !== "-" ? `/register/${eventSlug}` : null;
-  const websiteOrigin = getWebsiteOrigin();
-  const registerUrl =
-    registerPath && websiteOrigin ? new URL(registerPath, websiteOrigin).toString() : null;
+  const publicRegistrationUrl = useMemo(() => {
+    if (!detail?.slug || typeof window === "undefined") return null;
+    return `${window.location.origin}/register/${detail.slug}`;
+  }, [detail?.slug]);
 
   if (!eventId) {
     return (
-      <div className="rounded-[18px] border border-dashed border-[#D7E1F0] bg-white px-6 py-10 text-center text-sm text-[#6B7280]">
+      <div className="rounded-[24px] border border-dashed border-[#D7E1F0] bg-white px-6 py-12 text-center text-sm text-[#6B7280]">
         Event ID tidak ditemukan di URL.
       </div>
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-8 shadow-[0_14px_30px_rgba(10,38,71,0.05)]">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 w-32 rounded-full bg-slate-200" />
+            <div className="h-10 w-2/3 rounded-2xl bg-slate-200" />
+            <div className="h-5 w-full rounded-xl bg-slate-200" />
+            <div className="h-5 w-5/6 rounded-xl bg-slate-200" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !detail) {
+    return (
+      <div className="rounded-[24px] border border-dashed border-[#D7E1F0] bg-white px-6 py-12 text-center text-sm text-[#6B7280]">
+        {error || "Detail event tidak tersedia."}
+      </div>
+    );
+  }
+
+  const status = getStatusBadge(detail.status);
+  const eventDate = getEventDate(detail);
+  const registrationFields = detail.registrationForm?.fields?.length ?? 0;
+  const formVersion = detail.registrationForm?.version ?? 1;
+
   return (
     <div className="space-y-6">
-      <section
-        id="event-detail"
-        className="scroll-mt-24 rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-8 shadow-[0_14px_30px_rgba(10,38,71,0.05)]"
-      >
+      <section className="rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-8 shadow-[0_14px_30px_rgba(10,38,71,0.05)]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0 space-y-2">
+          <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#94A3B8]">
                 Event Detail
               </p>
-              <Link
-                to="/events"
-                className="inline-flex items-center gap-2 rounded-[14px] border border-[#DCE5F2] bg-white px-3 py-2 text-xs font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
-                title="Kembali ke daftar event"
-              >
-                <ArrowLeft size={14} />
-                Back to Events
-              </Link>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="min-w-0 text-[2.15rem] font-bold tracking-[-0.04em] text-[#0A2647]">
-                {eventTitle}
-              </h1>
-              <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClassName}`}>
-                {statusLabel}
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>
+                {status.label}
               </span>
             </div>
+            <h1 className="text-[2.15rem] font-bold tracking-[-0.04em] text-[#0A2647]">
+              {detail.title}
+            </h1>
             <p className="max-w-3xl text-sm leading-7 text-[#5B6B7F]">
-              {detail?.description ?? event?.description ?? "Belum ada deskripsi event."}
+              {detail.description?.trim() ||
+                "Detail event ini menjadi pusat kontrol untuk form registrasi, analytics, feedback, dan daftar participants."}
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-[20px] border border-[#E3EAF5] bg-white p-4 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
-              Tanggal Event
-            </p>
-            <div className="rounded-[16px] bg-[#EEF4FF] px-4 py-3 text-sm font-semibold text-[#0A2647]">
-              {eventDate ? formatDate(eventDate) : "-"}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Link
-                to={`/events/${eventId}/registration-form`}
-                className="inline-flex items-center justify-center rounded-[14px] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,38,71,0.16)] transition hover:bg-[#133A6F]"
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              to={`/events/${eventId}/participants`}
+              className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
+            >
+              Participants
+            </Link>
+            <Link
+              to={`/events/${eventId}/analytics`}
+              className="inline-flex items-center justify-center rounded-[14px] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,38,71,0.16)] transition hover:bg-[#133A6F]"
+            >
+              Event Analytics
+            </Link>
+            <Link
+              to={`/events/${eventId}/registration-form`}
+              className="inline-flex items-center justify-center gap-2 rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF] sm:col-span-2"
+            >
+              <FilePlus2 size={16} />
+              Form Builder Registration
+            </Link>
+            {publicRegistrationUrl ? (
+              <a
+                href={publicRegistrationUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF] sm:col-span-2"
               >
-                Form Builder
-              </Link>
-              <Link
-                to={`/events/${eventId}/analytics`}
-                className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
-              >
-                Analytics
-              </Link>
-            </div>
+                <ExternalLink size={16} />
+                Open Public Page
+              </a>
+            ) : null}
           </div>
         </div>
+      </section>
 
-        {detailError ? (
-          <div className="mt-6 rounded-[20px] border border-[#FCA5A5] bg-[#FEF2F2] px-5 py-4 text-sm text-[#991B1B]">
-            {detailError}
-          </div>
-        ) : null}
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="rounded-[28px] border border-[#D7E1F0] bg-white p-7 shadow-[0_12px_28px_rgba(10,38,71,0.06)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
+            Event Identity
+          </p>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 text-sm text-[#5B6B7F] shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Lokasi</div>
-            <div className="mt-2 font-semibold text-[#0A2647]">{eventLocation}</div>
-          </div>
-
-          <div className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 text-sm text-[#5B6B7F] shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-              Industry
-            </div>
-            <div className="mt-2 font-semibold text-[#0A2647]">{industryName}</div>
-          </div>
-
-          <div className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 text-sm text-[#5B6B7F] shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-              Kapasitas
-            </div>
-            <div className="mt-2 font-semibold text-[#0A2647]">
-              {event ? formatNumber(event.max_capacity) : "-"}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-[24px] border border-[#E3EAF5] bg-white p-6 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
-                Link Register (slug)
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <div className="rounded-[22px] border border-[#E5ECF6] bg-[#F8FAFD] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                Event Date
               </p>
-              <p className="mt-2 break-all font-mono text-sm text-[#0A2647]">{registerUrl ?? "-"}</p>
+              <p className="mt-2 text-base font-semibold text-[#0A2647]">
+                {eventDate ? formatDate(eventDate) : "-"}
+              </p>
             </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!registerUrl) return;
-                  try {
-                    await navigator.clipboard.writeText(registerUrl);
-                    setIsCopied(true);
-                  } catch {
-                    setIsCopied(false);
-                  }
-                }}
-                disabled={!registerUrl}
-                className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isCopied ? "Copied" : "Copy Link"}
-              </button>
-
-              {registerUrl ? (
-                <a
-                  href={registerUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-[14px] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,38,71,0.16)] transition hover:bg-[#133A6F]"
-                >
-                  Open Register
-                </a>
-              ) : (
-                <span className="inline-flex cursor-not-allowed items-center justify-center rounded-[14px] bg-[#0A2647]/60 px-4 py-3 text-sm font-semibold text-white">
-                  Open Register
-                </span>
-              )}
+            <div className="rounded-[22px] border border-[#E5ECF6] bg-[#F8FAFD] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                Location
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#0A2647]">
+                {detail.location || "-"}
+              </p>
             </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 text-sm text-[#5B6B7F] sm:grid-cols-2">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Event ID
-              </span>
-              <p className="mt-1 break-all font-semibold text-[#0A2647]">{eventId}</p>
+            <div className="rounded-[22px] border border-[#E5ECF6] bg-[#F8FAFD] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                Industry
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#0A2647]">
+                {detail.industry?.name || "-"}
+              </p>
             </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B8CA3]">
+            <div className="rounded-[22px] border border-[#E5ECF6] bg-[#F8FAFD] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
                 Slug
-              </span>
-              <p className="mt-1 break-all font-semibold text-[#0A2647]">{eventSlug}</p>
+              </p>
+              <p className="mt-2 break-all text-base font-semibold text-[#0A2647]">
+                {detail.slug}
+              </p>
+            </div>
+            <div className="rounded-[22px] border border-[#E5ECF6] bg-[#F8FAFD] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                Form Version
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#0A2647]">v{formVersion}</p>
+            </div>
+            <div className="rounded-[22px] border border-[#E5ECF6] bg-[#F8FAFD] p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                Published At
+              </p>
+              <p className="mt-2 text-base font-semibold text-[#0A2647]">
+                {detail.registrationForm?.publishedAt
+                  ? formatDate(detail.registrationForm.publishedAt)
+                  : "Belum dipublish"}
+              </p>
             </div>
           </div>
         </div>
 
-        {isLoadingDetail ? (
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={`detail-skeleton-${index}`}
-                className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 shadow-[0_10px_22px_rgba(15,23,42,0.04)] animate-pulse"
-              >
-                <div className="h-4 w-24 rounded bg-slate-200" />
-                <div className="mt-3 h-5 w-3/4 rounded bg-slate-200" />
+        <aside className="space-y-6">
+          <div className="rounded-[28px] border border-[#D7E1F0] bg-[#EAF1FF] p-6 shadow-[0_12px_28px_rgba(10,38,71,0.08)]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+                <QrCode size={22} />
               </div>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
-      <section
-        id="event-analytics"
-        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-      >
-        <h2 className="text-lg font-semibold text-[#0A2647]">Event Analytics</h2>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Registrations</p>
-            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-              {formatNumber(metrics.registrations)}
-            </p>
-          </div>
-          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Attendance</p>
-            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-              {formatNumber(metrics.attendance)} ({metrics.attendanceRate}%)
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="survey-analytics"
-        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-      >
-        <h2 className="text-lg font-semibold text-[#0A2647]">Survey Analytics</h2>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Total Responses</p>
-            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-              {formatNumber(metrics.responses)}
-            </p>
-          </div>
-          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Avg Rating</p>
-            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-              {metrics.averageRating}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="feedback-analytics"
-        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-      >
-        <h2 className="text-lg font-semibold text-[#0A2647]">Feedback Analytics</h2>
-        {metrics.feedbacks.length === 0 ? (
-          <p className="mt-4 text-sm text-[#6B7280]">Belum ada feedback yang masuk.</p>
-        ) : (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {metrics.feedbacks.map((feedback, index) => (
-              <div
-                key={`${feedback}-${index}`}
-                className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#4B5563]"
-              >
-                “{feedback}”
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
+                  Registration Access
+                </p>
+                <p className="text-base font-bold text-[#0A2647]">Public registration link</p>
               </div>
-            ))}
+            </div>
+
+            <div className="mt-5 rounded-[20px] bg-white p-4 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+              <p className="break-all text-sm leading-6 text-[#43556E]">
+                {publicRegistrationUrl || "URL public akan tersedia setelah event punya slug."}
+              </p>
+              {publicRegistrationUrl ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(publicRegistrationUrl);
+                    setCopied(true);
+                  }}
+                  className="mt-4 inline-flex items-center gap-2 rounded-[14px] border border-[#DCE5F2] bg-[#F8FAFD] px-4 py-2 text-sm font-semibold text-[#0A2647] transition hover:border-[#C9D7F3] hover:bg-[#EDF3FF]"
+                >
+                  <Copy size={14} />
+                  {copied ? "Link copied" : "Copy link"}
+                </button>
+              ) : null}
+            </div>
           </div>
-        )}
+
+          <div className="rounded-[28px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_28px_rgba(10,38,71,0.06)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
+              Form Snapshot
+            </p>
+            <div className="mt-4 grid gap-4">
+              <div className="rounded-[18px] border border-[#E5ECF6] bg-[#F8FAFD] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                  Total Active Fields
+                </p>
+                <p className="mt-2 text-2xl font-bold tracking-[-0.04em] text-[#0A2647]">
+                  {registrationFields}
+                </p>
+              </div>
+              <div className="rounded-[18px] border border-[#E5ECF6] bg-[#F8FAFD] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                  Event ID
+                </p>
+                <p className="mt-2 break-all text-sm font-semibold text-[#0A2647]">
+                  {detail._id}
+                </p>
+              </div>
+            </div>
+          </div>
+        </aside>
       </section>
     </div>
   );
-};
-
-export default EventDetail;
+}
