@@ -17,6 +17,7 @@ import { NotFound } from "@/pages/NotFound";
 import RegistrationForm from "@/pages/registration-visitor/index";
 import VisitorEventRegistrationPage from "@/pages/event-registration/VisitorEventRegistrationPage";
 import RegistrationReviewPage from "@/pages/event-registration/RegistrationReviewPage";
+import FeedbackSurveyPage from "@/pages/feedback-survey-form/FeedbackSurveyPage";
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
         <Route path="/visitor" element={<RegistrationForm />} />
         <Route path="/register/:slug" element={<VisitorEventRegistrationPage />} />
         <Route path="/register/:slug/review" element={<RegistrationReviewPage />} />
+        <Route path="/feedback" element={<FeedbackSurveyPage />} />
+        <Route path="/feedback/:slug" element={<FeedbackSurveyPage />} />
         <Route element={<MainDashboard />}>
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/events" element={<Events />} />
