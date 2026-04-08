@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Login } from "@/pages/auth/Login";
 import MainDashboard from "@/layouts/MainDashboard";
 import EventDashboard from "@/layouts/EventDashboard";
@@ -21,7 +21,6 @@ import { NotFound } from "@/pages/NotFound";
 import RegistrationForm from "@/pages/registration-visitor/index";
 import VisitorEventRegistrationPage from "@/pages/event-registration/VisitorEventRegistrationPage";
 import RegistrationReviewPage from "@/pages/event-registration/RegistrationReviewPage";
-import ProtectedRoute from "@/components/ProtectedRoute";
 
 function App() {
   return (
