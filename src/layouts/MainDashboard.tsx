@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Outlet } from "react-router-dom"; 
+import { Outlet } from "react-router-dom";
 import Navbar from "../components/ui/Navbar";
 import Sidebar from "../components/ui/Sidebar";
 
@@ -11,19 +11,16 @@ const MainDashboard = ({ children }: MainDashboardProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex">
-      {/* SIDEBAR */}
+    <div className="min-h-screen bg-[#F5F7FB]">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      {/* CONTENT */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ${
-          collapsed ? "ml-20" : "ml-48"
+        className={`min-h-screen transition-all duration-300 ${
+          collapsed ? "ml-24" : "ml-[288px]"
         }`}
       >
         <Navbar />
-
-        <div className="p-6">{children ?? <Outlet />}</div>
+        <main className="px-6 py-6">{children ?? <Outlet />}</main>
       </div>
     </div>
   );

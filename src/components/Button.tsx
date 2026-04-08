@@ -23,7 +23,7 @@ const Button = ({
   const variantClasses = {
     primary: "bg-primary text-white hover:bg-primary-light",
     secondary: "bg-secondary text-white hover:bg-secondary/90",
-    outline: "border border-primary text-primary hover:bg-primary hover:text-white",
+    outline: "border border-primary/40 bg-white text-primary shadow-[0_6px_18px_rgba(15,23,42,0.06)] hover:bg-primary hover:text-white",
     danger: "bg-danger text-white hover:bg-danger/85",
     success: "bg-success text-white hover:bg-success/85",
   }
@@ -71,3 +71,5 @@ const Button = ({
 }
 
 export default Button
+
+

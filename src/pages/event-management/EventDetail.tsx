@@ -1,65 +1,90 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { ArrowLeft } from "lucide-react";
 import type { AppDispatch, RootState } from "@/store/store";
 import { formatDate, formatNumber } from "@/utils/formatters";
-import { fetchEvents, updateEvent, deleteEvent } from "@/store/eventSlice";
+import { fetchEvents } from "@/store/eventSlice";
 import { api } from "@/services/api";
 
-type FormBuilderEvent = {
-  event?: {
-    id?: string;
-    title?: string;
-    eventDate?: string;
-    location?: string;
-    status?: string;
-    slug?: string;
-  };
-  eventId?: string;
-  formName?: string;
-  version?: number;
-  publishedAt?: string;
+type EventIndustry = {
+  refId?: string;
+  name?: string;
+} | null;
+
+type EventDetailItem = {
+  _id: string;
+  title?: string;
+  slug?: string;
+  description?: string;
+  category?: unknown;
+  industry?: EventIndustry;
+  eventDate?: string;
+  event_date?: string;
+  location?: string;
+  status?: string;
+  registrationForm?: Record<string, unknown>;
+};
+
+const getWebsiteOrigin = () => {
+  if (typeof window === "undefined") return null;
+  return window.location.origin;
+};
+
+const getEventDate = (item?: EventDetailItem | null) =>
+  item?.eventDate ?? item?.event_date ?? null;
+
+const getStatusBadge = (status?: string) => {
+  const normalized = status?.toLowerCase();
+  if (normalized === "published") {
+    return { label: "Published", className: "bg-[#E6F9F0] text-[#22C55E]" };
+  }
+  if (normalized === "closed") {
+    return { label: "Closed", className: "bg-[#F3F4F6] text-[#9CA3AF]" };
+  }
+  if (normalized === "ongoing") {
+    return { label: "Ongoing", className: "bg-[#EAF1FF] text-[#3B82F6]" };
+  }
+  if (normalized === "draft") {
+    return { label: "Draft", className: "bg-[#F3F4F6] text-[#6B7280]" };
+  }
+
+  return { label: status ?? "-", className: "bg-[#F3F4F6] text-[#6B7280]" };
 };
 
 const EventDetail = () => {
   const { eventId } = useParams<{ eventId: string }>();
-  const navigate = useNavigate();
+
   const dispatch = useDispatch<AppDispatch>();
   const { events, isLoading } = useSelector((state: RootState) => state.events);
   const { participants } = useSelector((state: RootState) => state.participants);
   const { responses } = useSelector((state: RootState) => state.surveyResponses);
 
-  const event = useMemo(() => events.find((item) => item.event_id === eventId), [events, eventId]);
-  const [detail, setDetail] = useState<FormBuilderEvent | null>(null);
+  const event = events.find((item) => item.event_id === eventId);
+
+  const [detail, setDetail] = useState<EventDetailItem | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState("");
-  
-// State form untuk update
-  const [isEdit, setIsEdit] = useState(false);
-  const [formData, setFormData] = useState({
-  title: "",
-  location: "",
-  status: "",
-  event_date: "",
-});
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
-    if (events.length === 0 && !isLoading) {
+    if (!event && !isLoading) {
       void dispatch(fetchEvents());
     }
-  }, [dispatch, events.length, isLoading]);
+  }, [dispatch, event, isLoading]);
 
   useEffect(() => {
     if (!eventId) return;
-    void loadDetail();
-  }, [eventId]);
 
-  const loadDetail = async () => {
+    const loadDetail = async () => {
       setIsLoadingDetail(true);
       setDetailError("");
-      const result = await api.get<FormBuilderEvent>(
-        `/api/v1/form-builder/events/${eventId}`
+
+      const cacheBuster = `ts=${Date.now()}`;
+      const result = await api.get<EventDetailItem>(
+        `/api/v1/events/${eventId}?${cacheBuster}`,
       );
+
       setIsLoadingDetail(false);
 
       if (result.error) {
@@ -69,78 +94,16 @@ const EventDetail = () => {
       }
 
       setDetail(result.data ?? null);
-  };
-
-  // Sync form data saat event ditemukan
-  useEffect(() => {
-    if (event) {
-      setFormData({
-        title: event.title,
-        location: event.location,
-        status: event.status,
-        event_date: event.event_date,
-      });
-    }
-  }, [event]);
-
- const handleUpdate = async () => {
-    if (!eventId) return;
-    if (!window.confirm("Simpan perubahan untuk event ini?")) return;
-
-    // Mapping status frontend ke enum backend
-    const statusMap: Record<string, string> = {
-      "published": "registration",
-      "draft": "draft",
-      "ongoing": "ongoing",
-      "closed": "done",
     };
-
-    const payload = {
-      title: formData.title.trim(),
-      location: formData.location.trim(),
-      status: statusMap[formData.status.toLowerCase()] || "draft", 
-      eventDate: new Date(formData.event_date).toISOString(),
-    };
-
-    // Pake PATCH karena backend controller lu handle partial update
-    const result = await api.patch<any>(`/api/v1/events/${eventId}`, payload);
-
-    if (result.error) {
-      alert("Gagal update: " + result.message);
-      return;
-    }
-
-    dispatch(updateEvent({ 
-      event_id: eventId, 
-      updates: {
-        ...formData,
-        event_id: eventId
-      } as any
-    }));
 
     void loadDetail();
-    alert("Event berhasil diupdate 🚀");
-    setIsEdit(false);
-  };
+  }, [eventId]);
 
-  const handleDelete = async () => {
-    if (!eventId) return;
-    if (!window.confirm("Yakin mau hapus event ini?")) return;
-
-    // 1. Consume API DELETE
-    const result = await api.delete<any>(`/api/v1/events/${eventId}`);
-    
-    if (result.error) {
-      alert("Gagal hapus: " + result.message);
-      return;
-    }
-
-    // 2. Hapus dari Redux Store
-    dispatch(deleteEvent(eventId));
-
-    alert("Event berhasil dihapus");
-    navigate("/events");
-  };
+  useEffect(() => {
+    if (!isCopied) return;
+    const timer = window.setTimeout(() => setIsCopied(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [isCopied]);
 
   const metrics = useMemo(() => {
     if (!eventId) {
@@ -156,14 +119,12 @@ const EventDetail = () => {
     }
 
     const eventParticipants = participants.filter(
-      (participant) => participant.event_id === eventId
+      (participant) => participant.event_id === eventId,
     );
-    const eventResponses = responses.filter(
-      (response) => response.event_id === eventId
-    );
+    const eventResponses = responses.filter((response) => response.event_id === eventId);
 
     const attendance = eventParticipants.filter(
-      (participant) => participant.is_attended
+      (participant) => participant.is_attended,
     ).length;
 
     const attendanceRate =
@@ -176,7 +137,7 @@ const EventDetail = () => {
         ? Math.round(
             (eventResponses.reduce((acc, item) => acc + item.overall_rating, 0) /
               eventResponses.length) *
-              10
+              10,
           ) / 10
         : 0;
 
@@ -196,12 +157,19 @@ const EventDetail = () => {
     };
   }, [event, eventId, participants, responses]);
 
-  const sidebarEvent = detail?.event;
-  const eventTitle = sidebarEvent?.title ?? event?.title ?? "Event Detail";
-  const eventDate = sidebarEvent?.eventDate ?? event?.event_date;
-  const eventLocation = sidebarEvent?.location ?? event?.location ?? "-";
-  const eventStatus = sidebarEvent?.status ?? event?.status ?? "-";
-  const eventSlug = sidebarEvent?.slug ?? "-";
+  const eventTitle = detail?.title ?? event?.title ?? "Event Detail";
+  const eventDate = getEventDate(detail) ?? event?.event_date ?? null;
+  const eventLocation = detail?.location ?? event?.location ?? "-";
+  const eventStatus = detail?.status ?? event?.status ?? "-";
+  const industryName = detail?.industry?.name ?? "-";
+  const eventSlug = detail?.slug ?? "-";
+
+  const { label: statusLabel, className: statusClassName } = getStatusBadge(eventStatus);
+
+  const registerPath = eventSlug && eventSlug !== "-" ? `/register/${eventSlug}` : null;
+  const websiteOrigin = getWebsiteOrigin();
+  const registerUrl =
+    registerPath && websiteOrigin ? new URL(registerPath, websiteOrigin).toString() : null;
 
   if (!eventId) {
     return (
@@ -212,297 +180,229 @@ const EventDetail = () => {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      <aside className="space-y-5">
-        <div className="rounded-[20px] border border-[#D7E1F0] bg-white p-4 shadow-[0_10px_24px_rgba(10,38,71,0.08)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
-            Event Detail
-          </p>
-          <h2 className="mt-3 text-lg font-semibold text-[#0A2647]">
-            {eventTitle}
-          </h2>
-          <div className="mt-4 space-y-3 text-sm text-[#5B6B7F]">
-            <div>
-              <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Tanggal
+    <div className="space-y-6">
+      <section
+        id="event-detail"
+        className="scroll-mt-24 rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-8 shadow-[0_14px_30px_rgba(10,38,71,0.05)]"
+      >
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#94A3B8]">
+                Event Detail
               </p>
-              <p className="mt-1 font-semibold text-[#0A2647]">
-                {eventDate ? formatDate(eventDate) : "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Lokasi
-              </p>
-              <p className="mt-1 font-semibold text-[#0A2647]">{eventLocation}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Status
-              </p>
-              <p className="mt-1 font-semibold text-[#0A2647]">{eventStatus}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Slug
-              </p>
-              <p className="mt-1 break-words text-[#0A2647]">{eventSlug}</p>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-[14px] border border-[#E6ECF7] bg-[#F8FAFF] p-3 text-xs text-[#6B7280]">
-            <p className="font-semibold text-[#0A2647]">Form Builder</p>
-            <p className="mt-1">
-              {detail?.formName ?? "Form belum tersedia"}
-            </p>
-            {detail?.publishedAt ? (
-              <p className="mt-1 text-[11px]">
-                Published: {formatDate(detail.publishedAt)}
-              </p>
-            ) : null}
-            <Link
-              to={`/events/${eventId}/registration-form`}
-              className="mt-3 inline-flex w-full items-center justify-center rounded-[10px] bg-[#0A2647] px-3 py-2 text-xs font-semibold text-white hover:bg-[#133A6F] transition"
-            >
-              Buka Form Builder
-            </Link>
-          </div>
-
-          {detailError ? (
-            <p className="mt-4 text-xs font-semibold text-red-600">{detailError}</p>
-          ) : null}
-          {isLoadingDetail ? (
-            <p className="mt-2 text-xs text-[#7B8CA3]">Memuat detail event...</p>
-          ) : null}
-        </div>
-
-        <div className="rounded-[20px] border border-[#D7E1F0] bg-white p-4 shadow-[0_10px_24px_rgba(10,38,71,0.08)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
-            Analytics
-          </p>
-          <div className="mt-3 space-y-2 text-sm">
-            <a
-              href="#event-analytics"
-              className="block rounded-[10px] px-3 py-2 text-[#0A2647] hover:bg-[#EEF4FF] transition"
-            >
-              Event Analytics
-            </a>
-            <a
-              href="#survey-analytics"
-              className="block rounded-[10px] px-3 py-2 text-[#0A2647] hover:bg-[#EEF4FF] transition"
-            >
-              Survey Analytics
-            </a>
-            <a
-              href="#feedback-analytics"
-              className="block rounded-[10px] px-3 py-2 text-[#0A2647] hover:bg-[#EEF4FF] transition"
-            >
-              Feedback Analytics
-            </a>
-          </div>
-        </div>
-      </aside>
-
-      <div className="space-y-8">
-        <div className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex gap-2">
-              {!isEdit ? (
-                <button
-                  onClick={() => setIsEdit(true)}
-                  className="px-4 py-2 rounded-[10px] bg-[#0A2647] text-white text-sm"
-                >
-                  Edit
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={handleUpdate}
-                    className="px-4 py-2 rounded-[10px] bg-[#22C55E] text-white text-sm"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => setIsEdit(false)}
-                    className="px-4 py-2 rounded-[10px] border border-[#D7E1F0] text-sm"
-                  >
-                    Cancel
-                  </button>
-                </>
-              )}
-
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 rounded-[10px] bg-[#FF4D4F] text-white text-sm"
+              <Link
+                to="/events"
+                className="inline-flex items-center gap-2 rounded-[14px] border border-[#DCE5F2] bg-white px-3 py-2 text-xs font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
+                title="Kembali ke daftar event"
               >
-                Delete
-              </button>
+                <ArrowLeft size={14} />
+                Back to Events
+              </Link>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
-                Ringkasan Event
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold text-[#0A2647]">
-                {isEdit ? (
-                  <input
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    className="mt-2 text-2xl font-semibold text-[#0A2647] border border-[#D7E1F0] rounded-[10px] px-3 py-2 w-full"
-                  />
-                ) : (
-                  <h1 className="mt-2 text-2xl font-semibold text-[#0A2647]">
-                    {eventTitle}
-                  </h1>
-                )}
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="min-w-0 text-[2.15rem] font-bold tracking-[-0.04em] text-[#0A2647]">
+                {eventTitle}
               </h1>
-              <p className="mt-2 text-sm text-[#6B7280]">
-                {event?.description ?? "Belum ada deskripsi event."}
-              </p>
+              <span className={`rounded-full px-2 py-1 text-xs font-medium ${statusClassName}`}>
+                {statusLabel}
+              </span>
             </div>
-            <div className="rounded-[16px] bg-[#EEF4FF] px-4 py-3 text-sm text-[#0A2647]">
-              {isEdit ? (
-                <input
-                  type="date"
-                  value={formData.event_date ? formData.event_date.split('T')[0] : ""} 
-                  onChange={(e) =>
-                    setFormData({ ...formData, event_date: e.target.value })
+            <p className="max-w-3xl text-sm leading-7 text-[#5B6B7F]">
+              {detail?.description ?? event?.description ?? "Belum ada deskripsi event."}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-[20px] border border-[#E3EAF5] bg-white p-4 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
+              Tanggal Event
+            </p>
+            <div className="rounded-[16px] bg-[#EEF4FF] px-4 py-3 text-sm font-semibold text-[#0A2647]">
+              {eventDate ? formatDate(eventDate) : "-"}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Link
+                to={`/events/${eventId}/registration-form`}
+                className="inline-flex items-center justify-center rounded-[14px] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,38,71,0.16)] transition hover:bg-[#133A6F]"
+              >
+                Form Builder
+              </Link>
+              <Link
+                to={`/events/${eventId}/analytics`}
+                className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
+              >
+                Analytics
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {detailError ? (
+          <div className="mt-6 rounded-[20px] border border-[#FCA5A5] bg-[#FEF2F2] px-5 py-4 text-sm text-[#991B1B]">
+            {detailError}
+          </div>
+        ) : null}
+
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 text-sm text-[#5B6B7F] shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
+            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Lokasi</div>
+            <div className="mt-2 font-semibold text-[#0A2647]">{eventLocation}</div>
+          </div>
+
+          <div className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 text-sm text-[#5B6B7F] shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
+            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
+              Industry
+            </div>
+            <div className="mt-2 font-semibold text-[#0A2647]">{industryName}</div>
+          </div>
+
+          <div className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 text-sm text-[#5B6B7F] shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
+            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
+              Kapasitas
+            </div>
+            <div className="mt-2 font-semibold text-[#0A2647]">
+              {event ? formatNumber(event.max_capacity) : "-"}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-[24px] border border-[#E3EAF5] bg-white p-6 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
+                Link Register (slug)
+              </p>
+              <p className="mt-2 break-all font-mono text-sm text-[#0A2647]">{registerUrl ?? "-"}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!registerUrl) return;
+                  try {
+                    await navigator.clipboard.writeText(registerUrl);
+                    setIsCopied(true);
+                  } catch {
+                    setIsCopied(false);
                   }
-                  className="bg-transparent border-b border-[#0A2647] outline-none"
-                />
+                }}
+                disabled={!registerUrl}
+                className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCopied ? "Copied" : "Copy Link"}
+              </button>
+
+              {registerUrl ? (
+                <a
+                  href={registerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center rounded-[14px] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,38,71,0.16)] transition hover:bg-[#133A6F]"
+                >
+                  Open Register
+                </a>
               ) : (
-                eventDate ? formatDate(eventDate) : "-"
+                <span className="inline-flex cursor-not-allowed items-center justify-center rounded-[14px] bg-[#0A2647]/60 px-4 py-3 text-sm font-semibold text-white">
+                  Open Register
+                </span>
               )}
             </div>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <div className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#5B6B7F]">
-              <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Lokasi
-              </div>
-              <div className="mt-2 font-semibold text-[#0A2647]">
-                {isEdit ? (
-                  <input
-                    value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
-                    }
-                    className="border border-[#D7E1F0] rounded-[10px] px-3 py-2 w-full"
-                  />
-                ) : (
-                  eventLocation
-                )}
-              </div>
+          <div className="mt-4 grid gap-3 text-sm text-[#5B6B7F] sm:grid-cols-2">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B8CA3]">
+                Event ID
+              </span>
+              <p className="mt-1 break-all font-semibold text-[#0A2647]">{eventId}</p>
             </div>
-            <div className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#5B6B7F]">
-              <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Status
-              </div>
-              <div className="mt-2 font-semibold text-[#0A2647]">
-                {isEdit ? (
-                  <select
-                    value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
-                    }
-                    className="border border-[#D7E1F0] rounded-[10px] px-3 py-2 w-full"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="ongoing">Ongoing</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                ) : (
-                  eventStatus
-                )}
-              </div>
-            </div>
-            <div className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#5B6B7F]">
-              <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Kapasitas
-              </div>
-              <div className="mt-2 font-semibold text-[#0A2647]">
-                {event ? formatNumber(event.max_capacity) : "-"}
-              </div>
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#7B8CA3]">
+                Slug
+              </span>
+              <p className="mt-1 break-all font-semibold text-[#0A2647]">{eventSlug}</p>
             </div>
           </div>
         </div>
 
-        <div
-          id="event-analytics"
-          className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-        >
-          <h2 className="text-lg font-semibold text-[#0A2647]">Event Analytics</h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Registrations
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-                {formatNumber(metrics.registrations)}
-              </p>
-            </div>
-            <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Attendance
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-                {formatNumber(metrics.attendance)} ({metrics.attendanceRate}%)
-              </p>
-            </div>
+        {isLoadingDetail ? (
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={`detail-skeleton-${index}`}
+                className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 shadow-[0_10px_22px_rgba(15,23,42,0.04)] animate-pulse"
+              >
+                <div className="h-4 w-24 rounded bg-slate-200" />
+                <div className="mt-3 h-5 w-3/4 rounded bg-slate-200" />
+              </div>
+            ))}
           </div>
-        </div>
+        ) : null}
+      </section>
 
-        <div
-          id="survey-analytics"
-          className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-        >
-          <h2 className="text-lg font-semibold text-[#0A2647]">Survey Analytics</h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Total Responses
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-                {formatNumber(metrics.responses)}
-              </p>
-            </div>
-            <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-              <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-                Avg Rating
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-                {metrics.averageRating}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div
-          id="feedback-analytics"
-          className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-        >
-          <h2 className="text-lg font-semibold text-[#0A2647]">Feedback Analytics</h2>
-          {metrics.feedbacks.length === 0 ? (
-            <p className="mt-4 text-sm text-[#6B7280]">
-              Belum ada feedback yang masuk.
+      <section
+        id="event-analytics"
+        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
+      >
+        <h2 className="text-lg font-semibold text-[#0A2647]">Event Analytics</h2>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Registrations</p>
+            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
+              {formatNumber(metrics.registrations)}
             </p>
-          ) : (
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              {metrics.feedbacks.map((feedback, index) => (
-                <div
-                  key={`${feedback}-${index}`}
-                  className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#4B5563]"
-                >
-                  “{feedback}”
-                </div>
-              ))}
-            </div>
-          )}
+          </div>
+          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Attendance</p>
+            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
+              {formatNumber(metrics.attendance)} ({metrics.attendanceRate}%)
+            </p>
+          </div>
         </div>
-      </div>
+      </section>
+
+      <section
+        id="survey-analytics"
+        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
+      >
+        <h2 className="text-lg font-semibold text-[#0A2647]">Survey Analytics</h2>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Total Responses</p>
+            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
+              {formatNumber(metrics.responses)}
+            </p>
+          </div>
+          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
+            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Avg Rating</p>
+            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
+              {metrics.averageRating}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="feedback-analytics"
+        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
+      >
+        <h2 className="text-lg font-semibold text-[#0A2647]">Feedback Analytics</h2>
+        {metrics.feedbacks.length === 0 ? (
+          <p className="mt-4 text-sm text-[#6B7280]">Belum ada feedback yang masuk.</p>
+        ) : (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {metrics.feedbacks.map((feedback, index) => (
+              <div
+                key={`${feedback}-${index}`}
+                className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#4B5563]"
+              >
+                “{feedback}”
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

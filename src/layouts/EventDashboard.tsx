@@ -1,31 +1,30 @@
-import { useState, type PropsWithChildren, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "@/components/ui/Navbar";
-import Sidebar from "@/components/ui/Sidebar";
+import EventSidebar from "@/components/ui/EventSidebar";
 
-type MainLayoutProps = PropsWithChildren<{
-  title?: string;
-  subtitle?: string;
-  actions?: ReactNode;
-}>;
+type EventDashboardProps = {
+  children?: ReactNode;
+};
 
-const MainLayout = ({ children }: MainLayoutProps) => {
+const EventDashboard = ({ children }: EventDashboardProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#F5F7FB]">
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <EventSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
       <div
         className={`min-h-screen transition-all duration-300 ${
           collapsed ? "ml-24" : "ml-[288px]"
         }`}
       >
-        <Navbar />
+        <Navbar backTo={{ to: "/events", label: "Kembali ke daftar event" }} />
         <main className="px-6 py-6">{children ?? <Outlet />}</main>
       </div>
     </div>
   );
 };
 
-export default MainLayout;
+export default EventDashboard;
+

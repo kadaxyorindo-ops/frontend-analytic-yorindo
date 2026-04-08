@@ -1,125 +1,149 @@
-import { Link, useLocation } from "react-router-dom";
+import type { Dispatch, SetStateAction } from "react";
 import {
-  LayoutDashboard,
   Calendar,
-  Users,
-  BarChart3,
-  Settings,
+  Headset,
+  LogOut,
   Menu,
+  LineChart,
+  MessageSquareText,
+  ClipboardList,
 } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 type SidebarProps = {
   collapsed: boolean;
-  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  setCollapsed: Dispatch<SetStateAction<boolean>>;
 };
+
+type MenuItem = {
+  name: string;
+  path?: string;
+  hash?: string;
+  icon: typeof Calendar;
+};
+
+const menu: MenuItem[] = [
+  { name: "Event", path: "/events", icon: Calendar },
+  { name: "Survey Analytics", hash: "#survey-analytics", icon: ClipboardList },
+  { name: "Event Analytics", hash: "#event-analytics", icon: LineChart },
+  { name: "Feedback Analytics", hash: "#feedback-analytics", icon: MessageSquareText },
+];
 
 const Sidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
   const location = useLocation();
-
-  const menu = [
-    { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-    { name: "Events", path: "/events", icon: Calendar },
-    { name: "Exhibitors", path: "/exhibitors", icon: Users },
-    { name: "Attendees", path: "/attendees", icon: Users },
-    { name: "Reports", path: "/reports", icon: BarChart3 },
-    { name: "Settings", path: "/settings", icon: Settings },
-  ];
+  const { user, logout } = useAuth();
+  const activeHash = location.hash;
 
   return (
-    <div
-      className={`fixed top-0 left-0 h-screen z-50 transition-all duration-300
-      ${collapsed ? "w-20" : "w-48"}`}
+    <aside
+      className={`fixed left-0 top-0 z-40 h-screen transition-all duration-300 ${
+        collapsed ? "w-24" : "w-[288px]"
+      }`}
     >
-      {/* WRAPPER */}
-      <div className="h-full p-3 bg-[#F3F4F6]">
-        <div
-          className="h-full flex flex-col justify-between
-          rounded-[24px]
-          border border-[#D7E1F0]
-          bg-[#F3F4F6]
-          shadow-[0_12px_32px_rgba(10,38,71,0.08)]
-          p-4"
-        >
-          {/* TOP */}
+      <div className="h-full bg-[#F5F7FB] px-3 py-3">
+        <div className="flex h-full flex-col rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-4 shadow-[0_14px_30px_rgba(10,38,71,0.08)]">
           <div>
-            {/* LOGO + TOGGLE */}
-            <div
-              className={`flex items-center mb-6 ${
-                collapsed ? "justify-center" : "justify-between"
-              }`}
-            >
-              {!collapsed && (
-                <h1 className="text-lg font-semibold text-[#0A2647]">
-                  YORINDO EMS
-                </h1>
+            <div className={`mb-8 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
+              {collapsed ? (
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0A2647] text-sm font-bold text-white shadow-[0_10px_22px_rgba(10,38,71,0.18)]">
+                  Y
+                </div>
+              ) : (
+                <div className="space-y-1 px-2">
+                  <p className="text-[1.1rem] font-extrabold tracking-[-0.04em] text-[#0A2647]">Yorindo EMS</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#94A3B8]">
+                    Exhibition Management
+                  </p>
+                </div>
               )}
 
               <button
-                onClick={() => setCollapsed(!collapsed)}
-                className="p-2 rounded-[10px] bg-[#DCE7FF] hover:bg-[#c7d7ff] transition"
+                onClick={() => setCollapsed((value) => !value)}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#D7E1F0] bg-[#E7EEFF] text-[#0A2647] transition hover:bg-[#D9E4FF]"
+                title="Toggle sidebar"
+                type="button"
               >
-                <Menu size={20} className="text-[#0A2647]" />
+                <Menu size={18} />
               </button>
             </div>
 
-            {/* MENU */}
-            <div className="flex flex-col gap-2">
+            <nav className="space-y-2">
               {menu.map((item) => {
-                const Icon = item.icon;
-                const isActive =
-                  location.pathname === item.path ||
-                  (item.path !== "/" && location.pathname.startsWith(item.path + "/"));
+                const isActive = item.path
+                  ? location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+                  : activeHash === item.hash;
 
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    className={`flex items-center w-full ${
-                      collapsed ? "justify-center px-0" : "gap-3 px-3"
-                    } py-2 rounded-[12px] transition
-                    ${
-                      isActive
-                        ? "bg-[#0A2647] text-white shadow-[0_6px_16px_rgba(10,38,71,0.2)]"
-                        : "text-[#5B6B7F] hover:bg-[#DCE7FF] hover:text-[#0A2647]"
-                    }`}
-                  >
-                    <Icon size={18} />
+                const classes = `flex w-full items-center rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                  collapsed ? "justify-center px-0" : "gap-3"
+                } ${
+                  isActive
+                    ? "border-[#DDE6FF] bg-white text-[#0A2647] shadow-[0_10px_20px_rgba(10,38,71,0.07)]"
+                    : "border-transparent text-[#5B6B7F] hover:border-[#E4EBF7] hover:bg-white hover:text-[#0A2647]"
+                }`;
 
-                    {!collapsed && (
-                      <span className="text-sm">{item.name}</span>
-                    )}
+                const content = (
+                  <>
+                    <item.icon size={18} className={isActive ? "text-[#2F5BFF]" : "text-[#7B8CA3]"} />
+                    {!collapsed ? <span>{item.name}</span> : null}
+                  </>
+                );
+
+                return item.path ? (
+                  <Link key={item.name} to={item.path} className={classes}>
+                    {content}
                   </Link>
+                ) : (
+                  <a key={item.name} href={item.hash} className={classes}>
+                    {content}
+                  </a>
                 );
               })}
-            </div>
+            </nav>
           </div>
 
-          {/* BOTTOM */}
-          <div className="flex flex-col gap-3">
+          <div className="mt-auto space-y-3">
             <button
-              className={`${
-                collapsed ? "px-0" : "px-3"
-              } bg-[#0A2647] text-white py-2 rounded-[12px] text-sm font-medium 
-              hover:bg-[#133A6F] transition shadow-[0_6px_16px_rgba(10,38,71,0.2)]`}
+              type="button"
+              className={`flex w-full items-center rounded-2xl border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-medium text-[#43556E] shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition hover:border-[#C9D7F3] hover:text-[#0A2647] ${
+                collapsed ? "justify-center px-0" : "gap-3"
+              }`}
             >
-              {collapsed ? "+" : "New Event"}
+              <Headset size={18} className="text-[#55708E]" />
+              {!collapsed ? <span>Support</span> : null}
             </button>
 
-            {!collapsed && (
-              <>
-                <div className="text-sm text-[#7B8CA3] hover:text-[#0A2647] cursor-pointer transition">
-                  Support
-                </div>
+            {!collapsed ? (
+              <div className="rounded-2xl border border-[#DCE5F2] bg-white px-4 py-3 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
+                <p className="truncate text-sm font-semibold text-[#0A2647]">{user?.name ?? "Guest"}</p>
+                <p className="truncate text-xs text-[#6F8098]">
+                  {user?.role === "super_admin"
+                    ? "Super Admin"
+                    : user?.role === "event_operator"
+                      ? "Event Operator"
+                      : user?.role === "communication_operator"
+                        ? "Communication Operator"
+                        : user?.role === "survey_analyst"
+                          ? "Survey Analyst"
+                          : "Visitor"}
+                </p>
+              </div>
+            ) : null}
 
-                <div className="text-sm text-[#FF4D4F] hover:text-[#D9363E] cursor-pointer transition">
-                  Logout
-                </div>
-              </>
-            )}
+            <button
+              type="button"
+              onClick={logout}
+              className={`flex w-full items-center justify-center rounded-2xl border border-[#0A2647] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(10,38,71,0.18)] transition hover:bg-[#133A6F] ${
+                collapsed ? "px-0" : "gap-3"
+              }`}
+            >
+              <LogOut size={18} />
+              {!collapsed ? <span>Logout</span> : null}
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 };
 
