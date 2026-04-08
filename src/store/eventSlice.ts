@@ -41,7 +41,9 @@ const normalizeStatus = (value?: string): Event["status"] => {
   if (status === "closed" || status === "cancelled" || status === "done") {
     return "closed"
   }
-  if (status === "ongoing") return "ongoing"
+  if (status === "ongoing") {
+    return "ongoing" as any
+  }
   return "draft"
 }
 
