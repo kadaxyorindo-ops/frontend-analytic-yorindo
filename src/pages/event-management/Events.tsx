@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import type { AppDispatch } from "@/store/store";
 import { useEvents } from "@/hooks/useEvents";
-import { fetchEvents } from "@/store/eventSlice";
+import { fetchEvents, addEvent } from "@/store/eventSlice";
 import { formatDate } from "@/utils/formatters";
 
 type EventStatus = "Published" | "Ongoing" | "Draft" | "Closed";

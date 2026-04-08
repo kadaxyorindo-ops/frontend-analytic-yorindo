@@ -35,12 +35,13 @@ interface EventApiItem {
 
 const normalizeStatus = (value?: string): Event["status"] => {
   const status = value?.toLowerCase()
-  if (status === "published" || status === "active" || status === "open") {
+  if (status === "published" || status === "active" || status === "registration" || status === "upcoming") {
     return "published"
   }
-  if (status === "closed" || status === "cancelled" || status === "canceled") {
+  if (status === "closed" || status === "cancelled" || status === "done") {
     return "closed"
   }
+  if (status === "ongoing") return "ongoing"
   return "draft"
 }
 
@@ -55,7 +56,6 @@ const normalizeLocation = (
 
 const normalizeDate = (item: EventApiItem) =>
   item.event_date ||
-  item.eventDate ||
   item.date ||
   item.start_at ||
   item.starts_at ||
@@ -97,7 +97,7 @@ interface EventState {
 }
 
 const initialState: EventState = {
-  events: mockEvents,
+  events: [], // Mulai dari kosong, jangan mock data terus
   isLoading: false,
   selectedEvent: null,
 }
@@ -106,19 +106,9 @@ const eventSlice = createSlice({
   name: "events",
   initialState,
   reducers: {
-    addEvent: (
-      state,
-      action: PayloadAction<CreateEventDTO & { exhibitor_id: string }>
-    ) => {
-      const newEvent: Event = {
-        event_id: `EVT-${Date.now()}`,
-        ...action.payload,
-        registered_count: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-      state.events.push(newEvent)
-    },
+    addEvent: (state, action: PayloadAction<Event>) => {
+      state.events.unshift(action.payload);
+},
     updateEvent: (
       state,
       action: PayloadAction<{ event_id: string; updates: Partial<Event> }>
@@ -161,9 +151,7 @@ const eventSlice = createSlice({
       })
       .addCase(fetchEvents.fulfilled, (state, action) => {
         state.isLoading = false
-        if (action.payload.length > 0) {
-          state.events = action.payload
-        }
+        state.events = action.payload // Selalu pakai data dari DB
       })
       .addCase(fetchEvents.rejected, (state) => {
         state.isLoading = false
