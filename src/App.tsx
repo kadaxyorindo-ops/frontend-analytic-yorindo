@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Login } from "@/pages/auth/Login";
 import MainDashboard from "@/layouts/MainDashboard";
+import EventDashboard from "@/layouts/EventDashboard";
 import DashboardHome from "@/pages/DashboardHome";
 import Events from "@/pages/event-management/Events";
 import EventDetail from "@/pages/event-management/EventDetail";
@@ -29,11 +30,13 @@ function App() {
         <Route element={<MainDashboard />}>
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/events" element={<Events />} />
-          <Route path="/events/:eventId" element={<EventDetail />} />
           <Route path="/exhibitors" element={<Exhibitors />} />
           <Route path="/attendees" element={<Attendees />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
+        </Route>
+        <Route path="/events/:eventId" element={<EventDashboard />}>
+          <Route index element={<EventDetail />} />
         </Route>
         <Route path="/events/create" element={<CreateEventPage />} />
         <Route path="/events/edit/:id" element={<EditEventPage />} />
