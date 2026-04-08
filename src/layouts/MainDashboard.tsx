@@ -9,17 +9,32 @@ type MainDashboardProps = {
 
 const MainDashboard = ({ children }: MainDashboardProps) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleSidebarToggle = () => {
+    if (window.innerWidth < 1024) {
+      setMobileOpen((value) => !value);
+      return;
+    }
+
+    setCollapsed((value) => !value);
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F7FB]">
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <Sidebar
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
+      />
 
       <div
         className={`min-h-screen transition-all duration-300 ${
-          collapsed ? "ml-24" : "ml-[288px]"
+          collapsed ? "lg:ml-24" : "lg:ml-[288px]"
         }`}
       >
-        <Navbar />
+        <Navbar onToggleSidebar={handleSidebarToggle} />
         <main className="px-6 py-6">{children ?? <Outlet />}</main>
       </div>
     </div>
