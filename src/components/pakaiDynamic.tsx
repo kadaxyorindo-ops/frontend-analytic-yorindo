@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Circle } from "lucide-react";
+import { Circle, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { useParams } from "react-router-dom";
+import axios from "axios";
 import FormBuilder from "./FormBuilder";
 import type {
   CustomQuestion,
@@ -50,6 +51,14 @@ export default function EventRegistrationPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<
+    | null
+    | {
+        tone: "success" | "warning" | "error";
+        title: string;
+        message: string;
+      }
+  >(null);
   const [formBuilderData, setFormBuilderData] = useState<FormBuilderData | null>(
     null,
   );
@@ -141,20 +150,48 @@ export default function EventRegistrationPage() {
   const handleSubmitForm = async (payload: Record<string, unknown>) => {
     try {
       setIsSubmitting(true);
-      console.log("Registration submitted:", payload);
+      setToast(null);
 
-      // Example: Send to backend API
-      // await fetch("/api/v1/registrations", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(payload),
-      // });
+      await axios.post("/api/register", payload, {
+        headers: { "Content-Type": "application/json" },
+      });
 
-      setSubmitMessage("Registration submitted successfully!");
+      setSubmitMessage("Registration submitted successfully! Please check your E-mail for the entry pass.");
       setTimeout(() => setSubmitMessage(null), 3000);
-    } catch (err) {
-      console.error("Submit error:", err);
-      setSubmitMessage("Failed to submit registration");
+    } catch (err: unknown) {
+      const apiMessage =
+        axios.isAxiosError(err) &&
+        (err.response?.data as { message?: unknown } | undefined)?.message
+          ? String((err.response?.data as { message?: unknown }).message)
+          : err instanceof Error
+            ? err.message
+            : "Unknown error";
+
+      if (apiMessage === "Email already registered") {
+        setSubmitMessage("This email is already used, please use another email.");
+        setToast({
+          tone: "warning",
+          title: "Duplicate email",
+          message: "This email is already used, please use another email.",
+        });
+      } else if (
+        apiMessage === "Phone already registered" ||
+        apiMessage === "Phone number already registered"
+      ) {
+        setSubmitMessage("This phone number is already used, please use another phone number.");
+        setToast({
+          tone: "warning",
+          title: "Duplicate phone number",
+          message: "This phone number is already used, please use another phone number.",
+        });
+      } else {
+        setSubmitMessage("Failed to submit registration");
+        setToast({
+          tone: "error",
+          title: "Submission failed",
+          message: "Something went wrong. Please try again.",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -168,25 +205,65 @@ export default function EventRegistrationPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl px-6 py-10">
-      <div className="relative bg-[#001128] text-white p-10 h-[220px] mb-6 rounded-2xl">
+      {toast ? (
+        <div className="fixed left-1/2 top-5 z-[60] w-[min(92vw,520px)] -translate-x-1/2">
+          <div
+            role="status"
+            aria-live="polite"
+            className={
+              toast.tone === "success"
+                ? "flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 shadow-lg"
+                : toast.tone === "warning"
+                  ? "flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-lg"
+                  : "flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 shadow-lg"
+            }
+          >
+            <div className="mt-0.5">
+              {toast.tone === "success" ? (
+                <CheckCircle2 className="h-5 w-5 text-green-700" />
+              ) : toast.tone === "warning" ? (
+                <AlertTriangle className="h-5 w-5 text-amber-700" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-700" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1 font-sans">
+              <div className="text-xl leading-tight font-semibold text-slate-900">
+                {toast.title}
+              </div>
+              <div className="mt-0.5 text-lg leading-relaxed text-slate-700">
+                {toast.message}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="font-sans rounded-lg px-2 py-1 text-lg leading-relaxed font-semibold text-slate-700 hover:bg-black/5"
+              onClick={() => setToast(null)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
+      <div className="relative bg-[#001128] text-white p-10 h-[220px] mb-6 rounded-2xl font-sans">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,#855300,transparent)]" />
         <div className="relative z-10 flex flex-col gap-4">
-          <div className="flex items-center gap-2 text-[#855300] text-xs font-semibold uppercase tracking-wide">
+          <div className="flex items-center gap-2 text-[#855300] text-lg leading-relaxed font-semibold uppercase tracking-wide">
             <Circle size={8} fill="#855300" />
             <span>Participant Registration</span>
           </div>
-          <h1 className="text-4xl font-extrabold">
+          <h1 className="text-3xl leading-tight font-extrabold">
             {formBuilderData?.event?.title}
           </h1>
-          <p className="text-sm text-[#768EB4] max-w-[672px]">
+          <p className="text-lg leading-relaxed text-[#768EB4] max-w-[672px]">
             {formBuilderData?.event?.location} - Please fill out the form below.
           </p>
         </div>
       </div>
 
       {submitMessage && (
-        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
-          <p className="text-sm text-green-800">{submitMessage}</p>
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="font-sans text-lg leading-relaxed font-semibold text-slate-900">{submitMessage}</p>
         </div>
       )}
 
