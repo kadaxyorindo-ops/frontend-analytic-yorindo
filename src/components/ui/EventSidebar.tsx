@@ -39,11 +39,7 @@ const EventSidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                 collapsed ? "justify-center" : "justify-between"
               }`}
             >
-              {collapsed ? (
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0A2647] text-sm font-bold text-white shadow-[0_10px_22px_rgba(10,38,71,0.18)]">
-                  E
-                </div>
-              ) : (
+              {!collapsed ? (
                 <div className="space-y-1 px-2">
                   <p className="text-[1.1rem] font-extrabold tracking-[-0.04em] text-[#0A2647]">
                     Event Workspace
@@ -52,7 +48,7 @@ const EventSidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
                     Detail & Analytics
                   </p>
                 </div>
-              )}
+              ) : null}
 
               <button
                 onClick={() => setCollapsed((value) => !value)}

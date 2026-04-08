@@ -1,7 +1,15 @@
-import { CircleUserRound, Search, Settings } from "lucide-react";
+import { ArrowLeft, CircleUserRound, Search, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
-const Navbar = () => {
+type NavbarProps = {
+  backTo?: {
+    to: string;
+    label?: string;
+  };
+};
+
+const Navbar = ({ backTo }: NavbarProps) => {
   const { user } = useAuth();
   const displayName = user?.name ?? "Guest";
   const roleLabel =
@@ -19,6 +27,15 @@ const Navbar = () => {
     <header className="sticky top-0 z-30 border-b border-[#D7E1F0] bg-white/95 px-6 py-4 backdrop-blur">
       <div className="flex items-center justify-between gap-6">
         <div className="flex min-w-0 items-center gap-3">
+          {backTo ? (
+            <Link
+              to={backTo.to}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#DCE5F2] bg-white text-[#5B6B7F] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:text-[#0A2647]"
+              title={backTo.label ?? "Back"}
+            >
+              <ArrowLeft size={18} />
+            </Link>
+          ) : null}
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0A2647] text-sm font-bold text-white shadow-[0_10px_22px_rgba(10,38,71,0.18)]">
             <CircleUserRound size={18} />
           </div>

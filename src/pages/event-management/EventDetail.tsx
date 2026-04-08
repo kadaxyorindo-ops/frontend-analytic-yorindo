@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { ArrowLeft } from "lucide-react";
 import type { AppDispatch, RootState } from "@/store/store";
 import { formatDate, formatNumber } from "@/utils/formatters";
 import { fetchEvents } from "@/store/eventSlice";
@@ -25,8 +26,10 @@ type EventDetailItem = {
   registrationForm?: Record<string, unknown>;
 };
 
-const getRegisterBaseUrl = () =>
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000";
+const getWebsiteOrigin = () => {
+  if (typeof window === "undefined") return null;
+  return window.location.origin;
+};
 
 const getEventDate = (item?: EventDetailItem | null) =>
   item?.eventDate ?? item?.event_date ?? null;
@@ -163,8 +166,10 @@ const EventDetail = () => {
 
   const { label: statusLabel, className: statusClassName } = getStatusBadge(eventStatus);
 
+  const registerPath = eventSlug && eventSlug !== "-" ? `/register/${eventSlug}` : null;
+  const websiteOrigin = getWebsiteOrigin();
   const registerUrl =
-    eventSlug && eventSlug !== "-" ? `${getRegisterBaseUrl()}/register/${eventSlug}` : null;
+    registerPath && websiteOrigin ? new URL(registerPath, websiteOrigin).toString() : null;
 
   if (!eventId) {
     return (
@@ -182,9 +187,19 @@ const EventDetail = () => {
       >
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#94A3B8]">
-              Event Detail
-            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#94A3B8]">
+                Event Detail
+              </p>
+              <Link
+                to="/events"
+                className="inline-flex items-center gap-2 rounded-[14px] border border-[#DCE5F2] bg-white px-3 py-2 text-xs font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
+                title="Kembali ke daftar event"
+              >
+                <ArrowLeft size={14} />
+                Back to Events
+              </Link>
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="min-w-0 text-[2.15rem] font-bold tracking-[-0.04em] text-[#0A2647]">
                 {eventTitle}

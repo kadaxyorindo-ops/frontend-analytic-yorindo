@@ -19,7 +19,7 @@ const EventDashboard = ({ children }: EventDashboardProps) => {
           collapsed ? "ml-24" : "ml-[288px]"
         }`}
       >
-        <Navbar />
+        <Navbar backTo={{ to: "/events", label: "Kembali ke daftar event" }} />
         <main className="px-6 py-6">{children ?? <Outlet />}</main>
       </div>
     </div>
