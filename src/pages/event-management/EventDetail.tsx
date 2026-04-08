@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { ArrowLeft } from "lucide-react";
 import type { AppDispatch, RootState } from "@/store/store";
 import { formatDate, formatNumber } from "@/utils/formatters";
 import { fetchEvents } from "@/store/eventSlice";
@@ -57,9 +56,6 @@ const EventDetail = () => {
 
   const dispatch = useDispatch<AppDispatch>();
   const { events, isLoading } = useSelector((state: RootState) => state.events);
-  const { participants } = useSelector((state: RootState) => state.participants);
-  const { responses } = useSelector((state: RootState) => state.surveyResponses);
-
   const event = events.find((item) => item.event_id === eventId);
 
   const [detail, setDetail] = useState<EventDetailItem | null>(null);
@@ -81,9 +77,7 @@ const EventDetail = () => {
       setDetailError("");
 
       const cacheBuster = `ts=${Date.now()}`;
-      const result = await api.get<EventDetailItem>(
-        `/api/v1/events/${eventId}?${cacheBuster}`,
-      );
+      const result = await api.get<EventDetailItem>(`/api/v1/events/${eventId}?${cacheBuster}`);
 
       setIsLoadingDetail(false);
 
@@ -104,58 +98,6 @@ const EventDetail = () => {
     const timer = window.setTimeout(() => setIsCopied(false), 1500);
     return () => window.clearTimeout(timer);
   }, [isCopied]);
-
-  const metrics = useMemo(() => {
-    if (!eventId) {
-      return {
-        registrations: 0,
-        capacity: 0,
-        attendance: 0,
-        attendanceRate: 0,
-        responses: 0,
-        averageRating: 0,
-        feedbacks: [] as string[],
-      };
-    }
-
-    const eventParticipants = participants.filter(
-      (participant) => participant.event_id === eventId,
-    );
-    const eventResponses = responses.filter((response) => response.event_id === eventId);
-
-    const attendance = eventParticipants.filter(
-      (participant) => participant.is_attended,
-    ).length;
-
-    const attendanceRate =
-      event?.registered_count && event.registered_count > 0
-        ? Math.round((attendance / event.registered_count) * 100)
-        : 0;
-
-    const averageRating =
-      eventResponses.length > 0
-        ? Math.round(
-            (eventResponses.reduce((acc, item) => acc + item.overall_rating, 0) /
-              eventResponses.length) *
-              10,
-          ) / 10
-        : 0;
-
-    const feedbacks = eventResponses
-      .map((response) => response.comment)
-      .filter(Boolean)
-      .slice(0, 4) as string[];
-
-    return {
-      registrations: event?.registered_count ?? 0,
-      capacity: event?.max_capacity ?? 0,
-      attendance,
-      attendanceRate,
-      responses: eventResponses.length,
-      averageRating,
-      feedbacks,
-    };
-  }, [event, eventId, participants, responses]);
 
   const eventTitle = detail?.title ?? event?.title ?? "Event Detail";
   const eventDate = getEventDate(detail) ?? event?.event_date ?? null;
@@ -181,25 +123,12 @@ const EventDetail = () => {
 
   return (
     <div className="space-y-6">
-      <section
-        id="event-detail"
-        className="scroll-mt-24 rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-8 shadow-[0_14px_30px_rgba(10,38,71,0.05)]"
-      >
+      <section className="rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-8 shadow-[0_14px_30px_rgba(10,38,71,0.05)]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#94A3B8]">
-                Event Detail
-              </p>
-              <Link
-                to="/events"
-                className="inline-flex items-center gap-2 rounded-[14px] border border-[#DCE5F2] bg-white px-3 py-2 text-xs font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
-                title="Kembali ke daftar event"
-              >
-                <ArrowLeft size={14} />
-                Back to Events
-              </Link>
-            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#94A3B8]">
+              Event Detail
+            </p>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="min-w-0 text-[2.15rem] font-bold tracking-[-0.04em] text-[#0A2647]">
                 {eventTitle}
@@ -222,16 +151,22 @@ const EventDetail = () => {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Link
-                to={`/events/${eventId}/registration-form`}
-                className="inline-flex items-center justify-center rounded-[14px] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,38,71,0.16)] transition hover:bg-[#133A6F]"
+                to={`/events/${eventId}/participants`}
+                className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
               >
-                Form Builder
+                Participants
               </Link>
               <Link
                 to={`/events/${eventId}/analytics`}
-                className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF]"
+                className="inline-flex items-center justify-center rounded-[14px] bg-[#0A2647] px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(10,38,71,0.16)] transition hover:bg-[#133A6F]"
               >
-                Analytics
+                Event Analytics
+              </Link>
+              <Link
+                to={`/events/${eventId}/registration-form`}
+                className="inline-flex items-center justify-center rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF] sm:col-span-2"
+              >
+                Form Builder Registration
               </Link>
             </div>
           </div>
@@ -250,16 +185,12 @@ const EventDetail = () => {
           </div>
 
           <div className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 text-sm text-[#5B6B7F] shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-              Industry
-            </div>
+            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Industry</div>
             <div className="mt-2 font-semibold text-[#0A2647]">{industryName}</div>
           </div>
 
           <div className="rounded-[16px] border border-[#E6ECF7] bg-white p-4 text-sm text-[#5B6B7F] shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">
-              Kapasitas
-            </div>
+            <div className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Kapasitas</div>
             <div className="mt-2 font-semibold text-[#0A2647]">
               {event ? formatNumber(event.max_capacity) : "-"}
             </div>
@@ -340,71 +271,9 @@ const EventDetail = () => {
           </div>
         ) : null}
       </section>
-
-      <section
-        id="event-analytics"
-        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-      >
-        <h2 className="text-lg font-semibold text-[#0A2647]">Event Analytics</h2>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Registrations</p>
-            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-              {formatNumber(metrics.registrations)}
-            </p>
-          </div>
-          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Attendance</p>
-            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-              {formatNumber(metrics.attendance)} ({metrics.attendanceRate}%)
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="survey-analytics"
-        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-      >
-        <h2 className="text-lg font-semibold text-[#0A2647]">Survey Analytics</h2>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Total Responses</p>
-            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-              {formatNumber(metrics.responses)}
-            </p>
-          </div>
-          <div className="rounded-[16px] bg-[#F8FAFF] p-4">
-            <p className="text-xs uppercase tracking-[0.12em] text-[#7B8CA3]">Avg Rating</p>
-            <p className="mt-2 text-2xl font-semibold text-[#0A2647]">
-              {metrics.averageRating}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="feedback-analytics"
-        className="scroll-mt-24 rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]"
-      >
-        <h2 className="text-lg font-semibold text-[#0A2647]">Feedback Analytics</h2>
-        {metrics.feedbacks.length === 0 ? (
-          <p className="mt-4 text-sm text-[#6B7280]">Belum ada feedback yang masuk.</p>
-        ) : (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {metrics.feedbacks.map((feedback, index) => (
-              <div
-                key={`${feedback}-${index}`}
-                className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4 text-sm text-[#4B5563]"
-              >
-                “{feedback}”
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 };
 
 export default EventDetail;
+

@@ -1,6 +1,13 @@
 import type { Dispatch, SetStateAction } from "react";
-import { BarChart3, ClipboardList, Info, Menu, MessageSquareText } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import {
+  BarChart3,
+  ClipboardList,
+  Info,
+  Menu,
+  MessageSquareText,
+  Users,
+} from "lucide-react";
+import { NavLink, useParams } from "react-router-dom";
 
 type SidebarProps = {
   collapsed: boolean;
@@ -9,21 +16,21 @@ type SidebarProps = {
 
 type MenuItem = {
   name: string;
-  hash: string;
+  to: string;
   icon: typeof Info;
-  isDefault?: boolean;
 };
 
-const menu: MenuItem[] = [
-  { name: "Event Detail", hash: "#event-detail", icon: Info, isDefault: true },
-  { name: "Event Analytics", hash: "#event-analytics", icon: BarChart3 },
-  { name: "Survei Analytics", hash: "#survey-analytics", icon: ClipboardList },
-  { name: "Feedback Analytics", hash: "#feedback-analytics", icon: MessageSquareText },
-];
-
 const EventSidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
-  const location = useLocation();
-  const activeHash = location.hash;
+  const { eventId } = useParams<{ eventId: string }>();
+  const resolvedEventId = eventId ?? "unknown";
+
+  const menu: MenuItem[] = [
+    { name: "Event Detail", to: `/events/${resolvedEventId}`, icon: Info },
+    { name: "Participants", to: `/events/${resolvedEventId}/participants`, icon: Users },
+    { name: "Event Analytics", to: `/events/${resolvedEventId}/analytics`, icon: BarChart3 },
+    { name: "Survei Analytics", to: `/events/${resolvedEventId}/survey-analytics`, icon: ClipboardList },
+    { name: "Feedback Analytics", to: `/events/${resolvedEventId}/feedback-analytics`, icon: MessageSquareText },
+  ];
 
   return (
     <aside
@@ -60,33 +67,34 @@ const EventSidebar = ({ collapsed, setCollapsed }: SidebarProps) => {
               </button>
             </div>
 
-            <nav className="space-y-2">
-              {menu.map((item) => {
-                const isActive =
-                  activeHash === item.hash ||
-                  (!!item.isDefault && (activeHash === "" || activeHash === "#"));
-
-                return (
-                  <a
+            {!collapsed ? (
+              <nav className="space-y-2">
+                {menu.map((item) => (
+                  <NavLink
                     key={item.name}
-                    href={item.hash}
-                    className={`flex w-full items-center rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
-                      collapsed ? "justify-center px-0" : "gap-3"
-                    } ${
-                      isActive
-                        ? "border-[#DDE6FF] bg-white text-[#0A2647] shadow-[0_10px_20px_rgba(10,38,71,0.07)]"
-                        : "border-transparent text-[#5B6B7F] hover:border-[#E4EBF7] hover:bg-white hover:text-[#0A2647]"
-                    }`}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      `flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition ${
+                        isActive
+                          ? "border-[#DDE6FF] bg-white text-[#0A2647] shadow-[0_10px_20px_rgba(10,38,71,0.07)]"
+                          : "border-transparent text-[#5B6B7F] hover:border-[#E4EBF7] hover:bg-white hover:text-[#0A2647]"
+                      }`
+                    }
+                    end={item.name === "Event Detail"}
                   >
-                    <item.icon
-                      size={18}
-                      className={isActive ? "text-[#2F5BFF]" : "text-[#7B8CA3]"}
-                    />
-                    {!collapsed ? <span>{item.name}</span> : null}
-                  </a>
-                );
-              })}
-            </nav>
+                    {({ isActive }) => (
+                      <>
+                        <item.icon
+                          size={18}
+                          className={isActive ? "text-[#2F5BFF]" : "text-[#7B8CA3]"}
+                        />
+                        <span>{item.name}</span>
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </nav>
+            ) : null}
           </div>
         </div>
       </div>
