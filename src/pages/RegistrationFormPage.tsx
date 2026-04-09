@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   CheckSquare,
   ChevronsUpDown,
-  Copy,
   Eye,
   Lock,
   Pencil,
@@ -16,8 +15,8 @@ import {
   Trash2,
   Type,
 } from "lucide-react"
-import MainLayout from "@/components/Layout/MainLayout"
 import Button from "@/components/Button"
+import Navbar from "@/components/ui/Navbar"
 import { addForm, updateForm } from "@/store/registrationFormSlice"
 import { api } from "@/services/api"
 import type { RootState } from "@/store/store"
@@ -557,20 +556,6 @@ const RegistrationFormPage = () => {
     setCustomFields((current) => current.filter((field) => field.localId !== localId))
   }
 
-  const copyRegistrationLink = async () => {
-    if (!persistedForm?.link_pendaftaran) {
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(persistedForm.link_pendaftaran)
-      setSaveMessage("Registration link berhasil disalin.")
-      setSaveError("")
-    } catch {
-      setSaveError("Registration link gagal disalin.")
-    }
-  }
-
   const saveForm = async () => {
     if (!effectiveEventId || isSaving) {
       if (!effectiveEventId) {
@@ -724,13 +709,25 @@ const RegistrationFormPage = () => {
   }
 
   return (
-    <MainLayout>
+    <div className="min-h-screen bg-[#F5F7FB]">
+      <Navbar
+        backTo={{
+          to: effectiveEventId ? `/events/${effectiveEventId}` : "/events",
+          label: "Kembali ke detail event",
+        }}
+      />
+      <main className="px-6 py-6">
       <div className="mx-auto max-w-[1320px] space-y-10">
         <div className="overflow-hidden rounded-[30px] border border-[#D7E1F0] bg-[linear-gradient(135deg,#F8FBFF_0%,#EEF4FF_55%,#F8FAFD_100%)] px-8 py-8 shadow-[0_18px_40px_rgba(10,38,71,0.08)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-neutral-500">
-              <button onClick={() => navigate("/events")} className="transition hover:text-primary">
+              <button
+                onClick={() =>
+                  navigate(effectiveEventId ? `/events/${effectiveEventId}` : "/events")
+                }
+                className="transition hover:text-primary"
+              >
                 Event Management
               </button>
               <span>&gt;</span>
@@ -744,9 +741,15 @@ const RegistrationFormPage = () => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" onClick={() => navigate("/events")} className="rounded-[16px] border-[#C9D7F3] px-5 py-3 text-sm font-semibold">
+            <Button
+              variant="outline"
+              onClick={() =>
+                navigate(effectiveEventId ? `/events/${effectiveEventId}` : "/events")
+              }
+              className="rounded-[16px] border-[#C9D7F3] px-5 py-3 text-sm font-semibold"
+            >
               <ArrowLeft size={16} />
-              Back to Events
+              Back to Event Detail
             </Button>
             <Button
               onClick={openCreateEditor}
@@ -784,7 +787,7 @@ const RegistrationFormPage = () => {
         ) : null}
 
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-10">
           <div className="space-y-10">
             <section className="space-y-5">
               <div className="flex items-center gap-3 text-primary">
@@ -956,76 +959,6 @@ const RegistrationFormPage = () => {
             </section>
           </div>
 
-          <aside className="space-y-6">
-            <div className="rounded-[24px] border border-[#D7E1F0] bg-[#EAF1FF] p-7 shadow-[0_12px_32px_rgba(10,38,71,0.08)]">
-              {persistedForm ? (
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <p className="text-[1.7rem] font-extrabold uppercase tracking-[0.08em] text-primary">
-                      Registration Link
-                    </p>
-                    <div className="rounded-[18px] bg-white p-5 shadow-[0_6px_18px_rgba(15,23,42,0.06)]">
-                      <p className="text-sm font-bold uppercase tracking-[0.12em] text-neutral-600">
-                        Public URL
-                      </p>
-                      <div className="mt-4 flex items-center gap-3">
-                        <code className="min-w-0 flex-1 truncate bg-transparent p-0 text-base text-primary">
-                          {persistedForm.link_pendaftaran}
-                        </code>
-                        <button
-                          type="button"
-                          onClick={() => void copyRegistrationLink()}
-                          className="rounded-[14px] border border-primary/10 bg-[#DCE7FF] p-3 text-primary transition hover:bg-[#cad9ff]"
-                        >
-                          <Copy size={20} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4 text-center">
-                  <p className="text-[1.7rem] font-extrabold uppercase tracking-[0.08em] text-primary">
-                    Registration Access
-                  </p>
-                  <div className="rounded-[18px] bg-white px-6 py-10 shadow-[0_6px_18px_rgba(15,23,42,0.06)]">
-                    <p className="text-lg font-semibold text-primary">Belum tersedia</p>
-                    <p className="mt-3 text-sm text-neutral-500">
-                      Link dan QR code akan muncul setelah kamu submit registration form ini.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7B8CA3]">
-                Quick Actions
-              </p>
-              <div className="mt-4 space-y-3">
-                <Button
-                  onClick={saveForm}
-                  disabled={isSaving}
-                  className="w-full justify-center rounded-[16px] border border-[#0A2647] bg-[#0A2647] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(10,38,71,0.16)] hover:bg-[#133A6F]"
-                >
-                  {persistedForm ? "Update Changes" : isSaving ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={openCreateEditor}
-                  className="w-full justify-center rounded-[16px] border-[#C9D7F3] px-5 py-3 text-sm font-semibold"
-                >
-                  <Plus size={16} />
-                  Add Custom Field
-                </Button>
-              </div>
-              {saveError ? (
-                <p className="mt-4 text-sm font-medium text-danger">{saveError}</p>
-              ) : null}
-              {saveMessage ? (
-                <p className="mt-4 text-sm font-medium text-[#0A2647]">{saveMessage}</p>
-              ) : null}
-            </div>
-          </aside>
         </div>
 
         {showFieldEditor ? (
@@ -1224,9 +1157,17 @@ const RegistrationFormPage = () => {
         ) : null}
 
         <div className="border-t border-neutral-200 pt-8">
+          {saveError ? (
+            <p className="mb-4 text-sm font-medium text-danger">{saveError}</p>
+          ) : null}
+          {saveMessage ? (
+            <p className="mb-4 text-sm font-medium text-[#0A2647]">{saveMessage}</p>
+          ) : null}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
             <button
-              onClick={() => navigate("/events")}
+              onClick={() =>
+                navigate(effectiveEventId ? `/events/${effectiveEventId}` : "/events")
+              }
               className="rounded-[16px] border border-neutral-200 bg-white px-6 py-4 text-lg font-semibold text-neutral-700 shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-primary/20 hover:text-primary"
             >
               Discard Changes
@@ -1243,7 +1184,8 @@ const RegistrationFormPage = () => {
           </div>
         </div>
       </div>
-    </MainLayout>
+      </main>
+    </div>
   )
 }
 

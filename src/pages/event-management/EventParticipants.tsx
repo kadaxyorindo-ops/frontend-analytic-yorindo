@@ -19,6 +19,14 @@ type EventRegistrationItem = {
   updatedAt: string;
   status: "pending" | "approved" | "rejected" | "checked_in" | string;
   participant?: RegistrationParticipant;
+  companySnapshot?: {
+    companyId?: string | null;
+    name?: string | null;
+  };
+  jobTitleSnapshot?: {
+    refId?: string | null;
+    name?: string | null;
+  };
   approval?: {
     approvedAt?: string;
     approvedBy?: string;
@@ -93,6 +101,8 @@ const EventParticipants = () => {
         participant?.fullName,
         participant?.companyEmail,
         participant?.personalEmail,
+        registration.companySnapshot?.name,
+        registration.jobTitleSnapshot?.name,
         registration.status,
       ]
         .join(" ")
@@ -167,6 +177,8 @@ const EventParticipants = () => {
                 <th className="px-6 py-4">Name</th>
                 <th className="px-6 py-4">Company Email</th>
                 <th className="px-6 py-4">Personal Email</th>
+                <th className="px-6 py-4">Company</th>
+                <th className="px-6 py-4">Jabatan</th>
                 <th className="px-6 py-4">Registered</th>
                 <th className="px-6 py-4">Status</th>
               </tr>
@@ -186,6 +198,12 @@ const EventParticipants = () => {
                       <div className="h-4 w-44 rounded bg-slate-200" />
                     </td>
                     <td className="px-6 py-4">
+                      <div className="h-4 w-36 rounded bg-slate-200" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 w-28 rounded bg-slate-200" />
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="h-4 w-24 rounded bg-slate-200" />
                     </td>
                     <td className="px-6 py-4">
@@ -195,7 +213,7 @@ const EventParticipants = () => {
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-[#6B7280]">
+                  <td colSpan={7} className="px-6 py-10 text-center text-sm text-[#6B7280]">
                     Tidak ada participant untuk event ini.
                   </td>
                 </tr>
@@ -214,6 +232,12 @@ const EventParticipants = () => {
                       </td>
                       <td className="px-6 py-4 text-[#0A2647]">{participant?.companyEmail ?? "-"}</td>
                       <td className="px-6 py-4 text-[#0A2647]">{participant?.personalEmail ?? "-"}</td>
+                      <td className="px-6 py-4 text-[#0A2647]">
+                        {registration.companySnapshot?.name ?? "-"}
+                      </td>
+                      <td className="px-6 py-4 text-[#0A2647]">
+                        {registration.jobTitleSnapshot?.name ?? "-"}
+                      </td>
                       <td className="px-6 py-4 text-[#0A2647]">
                         {registration.createdAt ? formatDate(registration.createdAt) : "-"}
                         {registration.checkIn?.checkedInAt ? (

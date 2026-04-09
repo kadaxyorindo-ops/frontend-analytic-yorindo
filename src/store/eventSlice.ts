@@ -16,6 +16,10 @@ interface EventApiItem {
   date?: string
   start_at?: string
   starts_at?: string
+  approvedCount?: number
+  pendingCount?: number
+  checkedInCount?: number
+  totalCount?: number
   location?:
     | string
     | {
@@ -44,7 +48,7 @@ const normalizeStatus = (value?: string): Event["status"] => {
     return "closed"
   }
   if (status === "ongoing") {
-    return "ongoing" as any
+    return "ongoing"
   }
   return "draft"
 }
@@ -73,8 +77,20 @@ const mapEvent = (item: EventApiItem): Event => ({
   event_date: normalizeDate(item),
   location: normalizeLocation(item.location),
   status: normalizeStatus(item.status),
-  max_capacity: item.max_capacity ?? item.capacity ?? 0,
-  registered_count: item.registered_count ?? item.registeredCount ?? 0,
+  industry: item.industry ?? null,
+  category: item.category ?? null,
+  max_capacity:
+    item.max_capacity ??
+    item.capacity ??
+    item.totalCount ??
+    item.registeredCount ??
+    item.registered_count ??
+    0,
+  registered_count:
+    item.registered_count ??
+    item.registeredCount ??
+    item.approvedCount ??
+    0,
   created_at: item.created_at ?? item.createdAt ?? new Date().toISOString(),
   updated_at: item.updated_at ?? item.updatedAt ?? new Date().toISOString(),
 })
@@ -90,6 +106,8 @@ type FetchEventsParams = {
   page?: number
   limit?: number
   status?: string
+  sortBy?: "eventDate" | "createdAt" | "title"
+  sortOrder?: "asc" | "desc"
 }
 
 export const fetchEvents = createAsyncThunk<
@@ -105,10 +123,14 @@ export const fetchEvents = createAsyncThunk<
     const page = params?.page
     const limit = params?.limit
     const status = params?.status
+    const sortBy = params?.sortBy
+    const sortOrder = params?.sortOrder
 
     if (typeof page === "number") query.set("page", String(page))
     if (typeof limit === "number") query.set("limit", String(limit))
     if (typeof status === "string" && status.trim()) query.set("status", status.trim())
+    if (sortBy) query.set("sortBy", sortBy)
+    if (sortOrder) query.set("sortOrder", sortOrder)
 
     const result = await api.get<{
       items: EventApiItem[]
@@ -131,11 +153,81 @@ export const fetchEvents = createAsyncThunk<
   }
 )
 
+type CreateEventPayload = {
+  title: string
+  description?: string | null
+  category?: string | null
+  industry: { refId: string | null; name: string | null }
+  eventDate: string
+  location?: string | null
+  registrationForm?: { fields: unknown[] }
+  createdBy?: string
+}
+
+export const createEventRemote = createAsyncThunk<
+  Event,
+  CreateEventPayload,
+  { rejectValue: string }
+>("events/createEventRemote", async (payload, { rejectWithValue }) => {
+  const result = await api.post<EventApiItem>("/api/v1/events", {
+    ...payload,
+    registrationForm: payload.registrationForm ?? { fields: [] },
+  })
+
+  if (result.error || !result.data) {
+    return rejectWithValue(result.error ?? "Gagal membuat event.")
+  }
+
+  return mapEvent(result.data)
+})
+
+type UpdateEventPayload = {
+  eventId: string
+  updates: {
+    title?: string
+    description?: string | null
+    category?: string | null
+    industry?: { refId: string | null; name: string | null }
+    eventDate?: string
+    location?: string | null
+    status?: string
+  }
+}
+
+export const updateEventRemote = createAsyncThunk<
+  Event,
+  UpdateEventPayload,
+  { rejectValue: string }
+>("events/updateEventRemote", async ({ eventId, updates }, { rejectWithValue }) => {
+  const result = await api.patch<EventApiItem>(`/api/v1/events/${eventId}`, updates)
+
+  if (result.error || !result.data) {
+    return rejectWithValue(result.error ?? "Gagal memperbarui event.")
+  }
+
+  return mapEvent(result.data)
+})
+
+export const deleteEventRemote = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>("events/deleteEventRemote", async (eventId, { rejectWithValue }) => {
+  const result = await api.delete<null>(`/api/v1/events/${eventId}/hard`)
+
+  if (result.error) {
+    return rejectWithValue(result.error ?? "Gagal menghapus event.")
+  }
+
+  return eventId
+})
+
 interface EventState {
   events: Event[]
   isLoading: boolean
   selectedEvent: Event | null
   pagination: EventPagination
+  error: string | null
 }
 
 const initialState: EventState = {
@@ -144,10 +236,11 @@ const initialState: EventState = {
   selectedEvent: null,
   pagination: {
     page: 1,
-    limit: 9,
+    limit: 5,
     total: 0,
     totalPages: 1,
   },
+  error: null,
 }
 
 const eventSlice = createSlice({
@@ -196,14 +289,55 @@ const eventSlice = createSlice({
     builder
       .addCase(fetchEvents.pending, (state) => {
         state.isLoading = true
+        state.error = null
       })
       .addCase(fetchEvents.fulfilled, (state, action) => {
         state.isLoading = false
         state.events = action.payload.items // Selalu pakai data dari DB
         state.pagination = action.payload.pagination
       })
-      .addCase(fetchEvents.rejected, (state) => {
+      .addCase(fetchEvents.rejected, (state, action) => {
         state.isLoading = false
+        state.error = action.payload ?? "Gagal mengambil data event."
+      })
+      .addCase(createEventRemote.pending, (state) => {
+        state.error = null
+      })
+      .addCase(createEventRemote.fulfilled, (state, action) => {
+        state.events.unshift(action.payload)
+      })
+      .addCase(createEventRemote.rejected, (state, action) => {
+        state.error = action.payload ?? "Gagal membuat event."
+      })
+      .addCase(updateEventRemote.pending, (state) => {
+        state.error = null
+      })
+      .addCase(updateEventRemote.fulfilled, (state, action) => {
+        const index = state.events.findIndex(
+          (event) => event.event_id === action.payload.event_id,
+        )
+        if (index !== -1) {
+          state.events[index] = action.payload
+        }
+      })
+      .addCase(updateEventRemote.rejected, (state, action) => {
+        state.error = action.payload ?? "Gagal memperbarui event."
+      })
+      .addCase(deleteEventRemote.pending, (state) => {
+        state.error = null
+      })
+      .addCase(deleteEventRemote.fulfilled, (state, action) => {
+        state.events = state.events.filter(
+          (event) => event.event_id !== action.payload,
+        )
+        state.pagination.total = Math.max(0, state.pagination.total - 1)
+        state.pagination.totalPages = Math.max(
+          1,
+          Math.ceil(state.pagination.total / Math.max(state.pagination.limit, 1)),
+        )
+      })
+      .addCase(deleteEventRemote.rejected, (state, action) => {
+        state.error = action.payload ?? "Gagal menghapus event."
       })
   },
 })
