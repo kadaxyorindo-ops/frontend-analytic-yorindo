@@ -20,15 +20,24 @@ const statusColor: Record<EventStatus, string> = {
 const tabs = ["All", "Draft", "Published", "Ongoing", "Closed"] as const;
 type TabType = (typeof tabs)[number];
 
+const statusParamForTab = (tab: TabType) => {
+  if (tab === "All") return undefined;
+  if (tab === "Draft") return "draft";
+  if (tab === "Published") return "published";
+  if (tab === "Ongoing") return "ongoing";
+  // Backend usually uses `cancelled` rather than `closed`.
+  return "cancelled";
+};
+
 const Events = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { events, isLoading } = useEvents();
+  const { events, isLoading, pagination } = useEvents();
   const { user } = useSelector((state: RootState) => state.auth); // Ambil user buat createdBy
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabType>("All");
   const [visibleCards, setVisibleCards] = useState<number[]>([]);
   const [industries, setIndustries] = useState<any[]>([]);
+  const pageLimit = 9;
 
   // --- State Baru buat Create Event ---
   const [showModal, setShowModal] = useState(false);
@@ -46,8 +55,6 @@ const Events = () => {
   });
 
   useEffect(() => {
-    void dispatch(fetchEvents());
-    
     // Fetch master data industries
     const loadIndustries = async () => {
       const result = await api.get<any>("/api/v1/industries");
@@ -65,6 +72,12 @@ const Events = () => {
     
     void loadIndustries();
   }, [dispatch]);
+
+  useEffect(() => {
+    void dispatch(
+      fetchEvents({ page: 1, limit: pageLimit, status: statusParamForTab(activeTab) }),
+    );
+  }, [activeTab, dispatch, pageLimit]);
 
   // Logic handle create
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -144,7 +157,13 @@ const Events = () => {
           industryId: industries[0]?._id || "", 
           industryName: industries[0]?.name || "General"
         });
-        void dispatch(fetchEvents());
+        void dispatch(
+          fetchEvents({
+            page: pagination.page ?? 1,
+            limit: pageLimit,
+            status: statusParamForTab(activeTab),
+          }),
+        );
       }
     } catch (err) {
       console.error("🔥 [DEBUG] Catch Error:", err);
@@ -153,8 +172,6 @@ const Events = () => {
       setIsSubmitting(false);
     }
   };
-
-  const eventsPerPage = 9;
 
   const mappedEvents = useMemo(() => {
     return events.map((event) => {
@@ -184,9 +201,7 @@ const Events = () => {
   const filteredEvents =
     activeTab === "All" ? mappedEvents : mappedEvents.filter((event) => event.status === activeTab);
 
-  const totalPages = Math.max(1, Math.ceil(filteredEvents.length / eventsPerPage));
-  const startIndex = (currentPage - 1) * eventsPerPage;
-  const currentEvents = filteredEvents.slice(startIndex, startIndex + eventsPerPage);
+  const currentEvents = filteredEvents;
 
   useEffect(() => {
     setVisibleCards([]);
@@ -194,7 +209,7 @@ const Events = () => {
       setVisibleCards(currentEvents.map((_, index) => index));
     }, 100);
     return () => clearTimeout(timer);
-  }, [currentPage, activeTab, currentEvents.length]);
+  }, [activeTab, currentEvents.length]);
 
   return (
     <div className="min-h-screen space-y-8 rounded-[28px] border border-[#D7E1F0] bg-[#F8FAFD] p-8 shadow-[0_14px_30px_rgba(10,38,71,0.05)]">
@@ -217,7 +232,6 @@ const Events = () => {
               key={tab}
               onClick={() => {
                 setActiveTab(tab);
-                setCurrentPage(1);
               }}
               className={`rounded-[14px] px-4 py-2 text-sm font-semibold transition ${
                 activeTab === tab
@@ -296,9 +310,39 @@ const Events = () => {
 
       {/* Pagination (Biar Tetap Rapi) */}
       <div className="flex items-center justify-center gap-2">
-        <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} className="rounded-xl border p-2 px-4 text-sm">Prev</button>
-        <span className="text-sm font-medium">Page {currentPage} of {totalPages}</span>
-        <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} className="rounded-xl border p-2 px-4 text-sm">Next</button>
+        <button
+          disabled={(pagination.page ?? 1) <= 1 || isLoading}
+          onClick={() =>
+            void dispatch(
+              fetchEvents({
+                page: Math.max((pagination.page ?? 1) - 1, 1),
+                limit: pageLimit,
+                status: statusParamForTab(activeTab),
+              }),
+            )
+          }
+          className="rounded-xl border p-2 px-4 text-sm disabled:opacity-50"
+        >
+          Prev
+        </button>
+        <span className="text-sm font-medium">
+          Page {pagination.page ?? 1} of {pagination.totalPages ?? 1}
+        </span>
+        <button
+          disabled={(pagination.page ?? 1) >= (pagination.totalPages ?? 1) || isLoading}
+          onClick={() =>
+            void dispatch(
+              fetchEvents({
+                page: Math.min((pagination.page ?? 1) + 1, pagination.totalPages ?? 1),
+                limit: pageLimit,
+                status: statusParamForTab(activeTab),
+              }),
+            )
+          }
+          className="rounded-xl border p-2 px-4 text-sm disabled:opacity-50"
+        >
+          Next
+        </button>
       </div>
 
       {/* --- MODAL CREATE EVENT --- */}

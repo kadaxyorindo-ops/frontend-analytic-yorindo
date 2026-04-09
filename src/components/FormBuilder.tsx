@@ -106,6 +106,42 @@ const buildValidationSchema = (fields: Field[]) => {
   return z.object(schemaObject);
 };
 
+const inferDefaultValue = (field: Field) => {
+  switch (field.type) {
+    case "checkbox":
+      return [] as string[];
+    default:
+      // RHF will otherwise keep `undefined` for untouched fields, which makes Zod
+      // throw "expected string, received undefined" for required string fields.
+      return "";
+  }
+};
+
+const normalizeFieldOptions = (field: Field) => {
+  if (!("options" in field)) return [] as Array<{ value: string; label: string }>;
+  const raw = field.options;
+  if (!Array.isArray(raw)) return [] as Array<{ value: string; label: string }>;
+
+  return raw
+    .map((option) => {
+      if (typeof option === "string") return { value: option, label: option };
+      const value =
+        typeof option?.value === "string"
+          ? option.value
+          : typeof option?.label === "string"
+            ? option.label
+            : "";
+      const label =
+        typeof option?.label === "string"
+          ? option.label
+          : typeof option?.value === "string"
+            ? option.value
+            : value;
+      return { value, label };
+    })
+    .filter((opt) => opt.value);
+};
+
 export default function FormBuilder({
   formBuilderData,
   onSubmit,
@@ -127,13 +163,21 @@ export default function FormBuilder({
         ...(formBuilderData.fixedFields || []),
         ...(formBuilderData.customQuestions || []),
       ]
-        .filter((field) => field.isActive)
+        .filter((field) => field.isActive ?? true)
         .sort((a, b) => a.order - b.order);
     } catch (error) {
       console.error("Error processing form fields:", error);
       return [];
     }
   }, [formBuilderData]);
+
+  const mergedDefaultValues = useMemo(() => {
+    const base: Record<string, unknown> = {};
+    for (const field of allFields) {
+      base[field.key] = inferDefaultValue(field);
+    }
+    return { ...base, ...(defaultValues ?? {}) };
+  }, [allFields, defaultValues]);
 
   const sections = useMemo(() => {
     const personalKeys = new Set([
@@ -197,13 +241,12 @@ export default function FormBuilder({
       validationSchema as unknown as Parameters<typeof zodResolver>[0],
     ),
     mode: "onBlur",
-    defaultValues: defaultValues ?? {},
+    defaultValues: mergedDefaultValues,
   });
 
   useEffect(() => {
-    if (!defaultValues) return;
-    reset(defaultValues);
-  }, [defaultValues, reset]);
+    reset(mergedDefaultValues);
+  }, [mergedDefaultValues, reset]);
 
   if (isLoading) {
     return (
@@ -348,12 +391,13 @@ export default function FormBuilder({
         );
 
       case "radio":
+        {
+          const options = normalizeFieldOptions(field);
         return (
           <fieldset key={field.fieldId} className="space-y-2 md:col-span-2">
             {commonLabel}
             <div className="space-y-2">
-              {"options" in field &&
-                field.options?.map((option) => (
+              {options.map((option) => (
                 <label
                   key={option.value}
                   className="flex items-center gap-2 text-lg"
@@ -370,14 +414,16 @@ export default function FormBuilder({
             {commonErrorDisplay}
           </fieldset>
         );
+        }
 
       case "checkbox":
+        {
+          const options = normalizeFieldOptions(field);
         return (
           <fieldset key={field.fieldId} className="space-y-2 md:col-span-2">
             {commonLabel}
             <div className="space-y-2">
-              {"options" in field &&
-                field.options?.map((option) => (
+              {options.map((option) => (
                 <label
                   key={option.value}
                   className="flex items-center gap-2 text-lg"
@@ -394,9 +440,12 @@ export default function FormBuilder({
             {commonErrorDisplay}
           </fieldset>
         );
+        }
 
       case "select":
       case "dropdown":
+        {
+          const options = normalizeFieldOptions(field);
         return (
           <div key={field.fieldId} className="space-y-2">
             {commonLabel}
@@ -424,8 +473,7 @@ export default function FormBuilder({
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    {"options" in field &&
-                      field.options?.map((option) => (
+                    {options.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -437,6 +485,7 @@ export default function FormBuilder({
             {commonErrorDisplay}
           </div>
         );
+        }
 
       case "info":
       case "instruction":

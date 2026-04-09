@@ -19,7 +19,7 @@ const EventListPage = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | Event["status"]>("all")
 
   useEffect(() => {
-    void dispatch(fetchEvents())
+    void dispatch(fetchEvents({ page: 1, limit: 1000 }))
   }, [dispatch])
 
   const filteredEvents = useMemo(() => {

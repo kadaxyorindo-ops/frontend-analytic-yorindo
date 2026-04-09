@@ -1,11 +1,13 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
 import type { PayloadAction } from "@reduxjs/toolkit"
-import type { CreateEventDTO, Event } from "@/types/event"
-import { mockEvents } from "@/utils/mockData"
+import type { Event } from "@/types/event"
 import { api } from "@/services/api"
 
 interface EventApiItem {
   _id: string
+  slug?: string
+  category?: string | null
+  industry?: { refId?: string | null; name?: string | null } | null
   title?: string
   description?: string
   status?: string
@@ -77,18 +79,55 @@ const mapEvent = (item: EventApiItem): Event => ({
   updated_at: item.updated_at ?? item.updatedAt ?? new Date().toISOString(),
 })
 
-export const fetchEvents = createAsyncThunk<Event[], void, { rejectValue: string }>(
+type EventPagination = {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+type FetchEventsParams = {
+  page?: number
+  limit?: number
+  status?: string
+}
+
+export const fetchEvents = createAsyncThunk<
+  { items: Event[]; pagination: EventPagination },
+  FetchEventsParams | undefined,
+  { rejectValue: string }
+>(
   "events/fetchEvents",
-  async (_, { rejectWithValue }) => {
-    const cacheBuster = `ts=${Date.now()}`
-    const result = await api.get<{ items: EventApiItem[] }>(
-      `/api/v1/events?${cacheBuster}`
-    )
+  async (params, { rejectWithValue }) => {
+    const query = new URLSearchParams()
+    query.set("ts", String(Date.now()))
+
+    const page = params?.page
+    const limit = params?.limit
+    const status = params?.status
+
+    if (typeof page === "number") query.set("page", String(page))
+    if (typeof limit === "number") query.set("limit", String(limit))
+    if (typeof status === "string" && status.trim()) query.set("status", status.trim())
+
+    const result = await api.get<{
+      items: EventApiItem[]
+      pagination: EventPagination
+    }>(`/api/v1/events?${query.toString()}`)
+
     if (result.error || !result.data) {
       return rejectWithValue(result.error ?? "Gagal mengambil data event.")
     }
 
-    return (result.data.items ?? []).map(mapEvent)
+    return {
+      items: (result.data.items ?? []).map(mapEvent),
+      pagination: result.data.pagination ?? {
+        page: page ?? 1,
+        limit: limit ?? 10,
+        total: (result.data.items ?? []).length,
+        totalPages: 1,
+      },
+    }
   }
 )
 
@@ -96,12 +135,19 @@ interface EventState {
   events: Event[]
   isLoading: boolean
   selectedEvent: Event | null
+  pagination: EventPagination
 }
 
 const initialState: EventState = {
   events: [], // Mulai dari kosong, jangan mock data terus
   isLoading: false,
   selectedEvent: null,
+  pagination: {
+    page: 1,
+    limit: 9,
+    total: 0,
+    totalPages: 1,
+  },
 }
 
 const eventSlice = createSlice({
@@ -153,7 +199,8 @@ const eventSlice = createSlice({
       })
       .addCase(fetchEvents.fulfilled, (state, action) => {
         state.isLoading = false
-        state.events = action.payload // Selalu pakai data dari DB
+        state.events = action.payload.items // Selalu pakai data dari DB
+        state.pagination = action.payload.pagination
       })
       .addCase(fetchEvents.rejected, (state) => {
         state.isLoading = false
