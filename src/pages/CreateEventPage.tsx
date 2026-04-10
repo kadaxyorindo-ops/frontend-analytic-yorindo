@@ -4,13 +4,14 @@ import { useNavigate } from "react-router-dom"
 import MainLayout from "@/components/Layout/MainLayout"
 import Button from "@/components/Button"
 import { useAuth } from "@/hooks/useAuth"
-import { addEvent } from "@/store/eventSlice"
+import { createEventRemote } from "@/store/eventSlice"
+import type { AppDispatch } from "@/store/store"
 import type { CreateEventDTO, Event } from "@/types/event"
 
 const CreateEventPage = () => {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { isAuthenticated } = useAuth()
   const [form, setForm] = useState<CreateEventDTO>({
     title: "",
     description: "",
@@ -27,17 +28,23 @@ const CreateEventPage = () => {
     setForm((current) => ({ ...current, [key]: value }))
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!user?.exhibitor_id && user?.role !== "super_admin") return
+    if (!isAuthenticated) return
 
-    dispatch(
-      addEvent({
-        ...form,
-        exhibitor_id:
-          user.role === "super_admin" ? "super_admin" : user.exhibitor_id ?? user.id,
+    const result = await dispatch(
+      createEventRemote({
+        title: form.title,
+        description: form.description || null,
+        eventDate: form.event_date,
+        location: form.location || null,
+        category: "General",
+        industry: { refId: null, name: "General" },
+        registrationForm: { fields: [] },
       })
     )
+
+    if (createEventRemote.rejected.match(result)) return
     navigate("/events")
   }
 

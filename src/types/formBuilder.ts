@@ -5,11 +5,13 @@ export interface ValidationRule {
   message?: string;
 }
 
-export interface FormOption {
-  value: string;
-  label: string;
-  isDefault?: boolean;
-}
+export type FormOption =
+  | string
+  | {
+      value: string;
+      label: string;
+      isDefault?: boolean;
+    };
 
 export interface BaseField {
   fieldId: string;

@@ -5,7 +5,9 @@ export interface Event {
   description: string
   event_date: string
   location: string
-  status: "draft" | "published" | "closed"
+  status: "draft" | "published" | "closed" | "ongoing"
+  industry?: { refId?: string | null; name?: string | null } | null
+  category?: string | null
   max_capacity: number
   registered_count: number
   created_at: string
@@ -17,7 +19,7 @@ export interface CreateEventDTO {
   description: string
   event_date: string
   location: string
-  status: "draft" | "published" | "closed"
+  status: "draft" | "published" | "closed" | "ongoing"
   max_capacity: number
 }
 

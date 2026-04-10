@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
-  Headset,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -26,7 +25,6 @@ interface WorkspaceSidebarProps {
   eyebrow: string;
   title: string;
   items: SidebarItem[];
-  supportLabel?: string;
 }
 
 export default function WorkspaceSidebar({
@@ -37,26 +35,14 @@ export default function WorkspaceSidebar({
   eyebrow,
   title,
   items,
-  supportLabel = "Support",
 }: WorkspaceSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname, setMobileOpen]);
-
-  const roleLabel =
-    user?.role === "super_admin"
-      ? "Super Admin"
-      : user?.role === "event_operator"
-        ? "Event Operator"
-        : user?.role === "communication_operator"
-          ? "Communication Operator"
-          : user?.role === "survey_analyst"
-            ? "Survey Analyst"
-            : "EMS Staff";
 
   const handleLogout = () => {
     logout();
@@ -83,7 +69,11 @@ export default function WorkspaceSidebar({
               collapsed ? "lg:w-24" : "lg:w-[288px]"
             }`}
           >
-            <div className={`mb-8 flex items-center ${collapsed ? "lg:justify-center" : "justify-between"}`}>
+            <div
+              className={`mb-8 flex items-center ${
+                collapsed ? "lg:justify-center" : "justify-between"
+              }`}
+            >
               {!collapsed ? (
                 <div className="space-y-1 px-2">
                   <p className="text-[1.1rem] font-extrabold tracking-[-0.04em] text-[#0A2647]">
@@ -94,9 +84,7 @@ export default function WorkspaceSidebar({
                   </p>
                 </div>
               ) : (
-                <div className="hidden h-11 w-11 items-center justify-center rounded-2xl bg-[#0A2647] text-base font-bold text-white shadow-[0_10px_22px_rgba(10,38,71,0.18)] lg:flex">
-                  Y
-                </div>
+                <div className="hidden lg:block" />
               )}
 
               <button
@@ -150,26 +138,7 @@ export default function WorkspaceSidebar({
               ))}
             </nav>
 
-            <div className="mt-auto space-y-3">
-              <button
-                type="button"
-                className={`flex w-full items-center rounded-2xl border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-medium text-[#43556E] shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition hover:border-[#C9D7F3] hover:text-[#0A2647] ${
-                  collapsed ? "justify-center px-0" : "gap-3"
-                }`}
-              >
-                <Headset size={18} className="text-[#55708E]" />
-                {!collapsed ? <span>{supportLabel}</span> : null}
-              </button>
-
-              {!collapsed ? (
-                <div className="rounded-2xl border border-[#DCE5F2] bg-white px-4 py-3 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-                  <p className="truncate text-sm font-semibold text-[#0A2647]">
-                    {user?.name ?? "Guest"}
-                  </p>
-                  <p className="truncate text-xs text-[#6F8098]">{roleLabel}</p>
-                </div>
-              ) : null}
-
+            <div className="mt-auto">
               <button
                 type="button"
                 onClick={handleLogout}

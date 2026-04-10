@@ -11,6 +11,7 @@ const statusClasses: Record<Event["status"], string> = {
   draft: "bg-warning/10 text-warning",
   published: "bg-success/10 text-success",
   closed: "bg-danger/10 text-danger",
+  ongoing: "bg-secondary/10 text-secondary",
 }
 
 const EventCard = ({ event }: Props) => {
