@@ -5,6 +5,12 @@ import type { FormBuilderResponse } from "../../types/formBuilder";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { CheckCircle2, XCircle } from "lucide-react";
+import {
+  DUPLICATE_REGISTRATION_DESCRIPTION,
+  DUPLICATE_REGISTRATION_TITLE,
+  isDuplicateRegistrationError,
+  parseSubmitErrorMessage,
+} from "../../utils/registrationSubmitErrors";
 
 export default function VisitorEventRegistrationPage() {
   const { slug } = useParams();
@@ -98,20 +104,15 @@ export default function VisitorEventRegistrationPage() {
     };
   }, [data?.event?.eventDate]);
 
-  const friendlySubmitError = useMemo(() => {
-    if (!submitError) return null;
-    const raw = submitError.trim();
-    if (!raw) return "Failed to submit registration.";
-    if (raw.startsWith("{") && raw.endsWith("}")) {
-      try {
-        const parsed = JSON.parse(raw) as { message?: unknown };
-        if (parsed?.message) return String(parsed.message);
-      } catch {
-        // fall through
-      }
-    }
-    return submitError;
-  }, [submitError]);
+  const friendlySubmitError = useMemo(
+    () => parseSubmitErrorMessage(submitError),
+    [submitError],
+  );
+
+  const showDuplicateContactHelp = useMemo(
+    () => isDuplicateRegistrationError(friendlySubmitError),
+    [friendlySubmitError],
+  );
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     if (!data) return;
@@ -277,7 +278,16 @@ export default function VisitorEventRegistrationPage() {
               </div>
             ) : (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4 font-sans text-lg leading-relaxed text-red-800">
-                {friendlySubmitError || "Failed to submit registration."}
+                {showDuplicateContactHelp ? (
+                  <>
+                    <p className="font-semibold">{DUPLICATE_REGISTRATION_TITLE}</p>
+                    <p className="mt-2 text-base leading-relaxed text-red-700">
+                      {DUPLICATE_REGISTRATION_DESCRIPTION}
+                    </p>
+                  </>
+                ) : (
+                  <p>{friendlySubmitError || "Failed to submit registration."}</p>
+                )}
               </div>
             )}
 
