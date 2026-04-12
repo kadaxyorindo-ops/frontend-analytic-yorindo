@@ -4,6 +4,12 @@ import { Building2, Check, Edit3, Sparkles, User2 } from "lucide-react";
 import type { FormBuilderResponse } from "../../types/formBuilder";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
+import {
+  DUPLICATE_REGISTRATION_DESCRIPTION,
+  DUPLICATE_REGISTRATION_TITLE,
+  isDuplicateRegistrationError,
+  parseSubmitErrorMessage,
+} from "../../utils/registrationSubmitErrors";
 
 type ReviewNavState = {
   data: FormBuilderResponse["data"];
@@ -95,6 +101,16 @@ export default function RegistrationReviewPage() {
       })
       .filter((s) => s.items.length > 0);
   }, [reviewItems, sections]);
+
+  const friendlySubmitError = useMemo(
+    () => parseSubmitErrorMessage(submitError),
+    [submitError],
+  );
+
+  const showDuplicateContactHelp = useMemo(
+    () => isDuplicateRegistrationError(friendlySubmitError),
+    [friendlySubmitError],
+  );
 
   const handleSubmit = async () => {
     if (!data || !values) return;
@@ -208,7 +224,16 @@ export default function RegistrationReviewPage() {
               </div>
             ) : submitError ? (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-lg leading-relaxed text-red-800">
-                {submitError}
+                {showDuplicateContactHelp ? (
+                  <>
+                    <p className="font-semibold">{DUPLICATE_REGISTRATION_TITLE}</p>
+                    <p className="mt-2 text-base leading-relaxed text-red-700">
+                      {DUPLICATE_REGISTRATION_DESCRIPTION}
+                    </p>
+                  </>
+                ) : (
+                  <p>{friendlySubmitError || "Failed to submit registration."}</p>
+                )}
               </div>
             ) : null}
 
