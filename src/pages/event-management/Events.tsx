@@ -568,7 +568,7 @@ const Events = () => {
 
       {/* --- MODAL CREATE EVENT --- */}
       {showModal && (
-        <div className="fixed inset-0 z-[99] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-99 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg overflow-hidden rounded-[28px] bg-white shadow-2xl animate-in zoom-in duration-200">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[#F1F5F9] px-8 py-6">
