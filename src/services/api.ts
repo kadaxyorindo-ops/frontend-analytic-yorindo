@@ -90,8 +90,8 @@ async function request<T>(
 }
 
 export const api = {
-  get<T>(path: string) {
-    return request<T>(path, { method: "GET" });
+  get<T>(path: string, init: RequestInit = {}) {
+    return request<T>(path, { ...init, method: "GET" });
   },
   post<T>(path: string, body?: unknown) {
     return request<T>(path, {

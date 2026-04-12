@@ -58,7 +58,8 @@ const formatMonthLabel = (month: string) => {
 
 const COLORS = ["#F59E0B", "#22C55E", "#EF4444", "#3B82F6"];
 
-const getInsightsCacheKey = (eventId: string) => `ems_event_insights_${eventId}`;
+const getInsightsCacheKey = (eventId: string) =>
+  `ems_event_insights_${eventId}`;
 
 const readCachedInsights = (eventId: string): CachedInsights | null => {
   if (typeof window === "undefined") return null;
@@ -74,7 +75,10 @@ const readCachedInsights = (eventId: string): CachedInsights | null => {
 const writeCachedInsights = (eventId: string, payload: CachedInsights) => {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(getInsightsCacheKey(eventId), JSON.stringify(payload));
+    window.sessionStorage.setItem(
+      getInsightsCacheKey(eventId),
+      JSON.stringify(payload),
+    );
   } catch {
     // ignore cache errors
   }
@@ -134,7 +138,7 @@ const EventAnalytics = () => {
 
     const cacheBuster = `ts=${Date.now()}`;
     const result = await api.get<AnalyticsInsights>(
-      `/api/v1/analytics/events/${eventId}/insights?${cacheBuster}`,
+      `/api/v1/analytics/events/${eventId}/insights?refresh=1`,
     );
 
     setIsLoadingInsights(false);
@@ -174,8 +178,14 @@ const EventAnalytics = () => {
     }));
   }, [overview?.registrationsOverTime]);
 
-  const maxIndustry = Math.max(1, ...(overview?.topIndustries ?? []).map((item) => item.count));
-  const maxCity = Math.max(1, ...(overview?.topCities ?? []).map((item) => item.count));
+  const maxIndustry = Math.max(
+    1,
+    ...(overview?.topIndustries ?? []).map((item) => item.count),
+  );
+  const maxCity = Math.max(
+    1,
+    ...(overview?.topCities ?? []).map((item) => item.count),
+  );
 
   if (!eventId) {
     return (
@@ -197,7 +207,9 @@ const EventAnalytics = () => {
               Overview
             </h1>
             <p className="text-sm leading-7 text-[#5B6B7F]">
-              {overview?.month ? `Bulan: ${formatMonthLabel(overview.month)}` : "Ringkasan performa event."}
+              {overview?.month
+                ? `Bulan: ${formatMonthLabel(overview.month)}`
+                : "Ringkasan performa event."}
             </p>
           </div>
         </div>
@@ -210,7 +222,9 @@ const EventAnalytics = () => {
               <Sparkles size={18} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#0A2647]">AI Insights</h2>
+              <h2 className="text-lg font-semibold text-[#0A2647]">
+                AI Insights
+              </h2>
               <p className="text-xs text-[#7B8CA3]">
                 Ringkasan cepat + rekomendasi
                 {insightsCachedAt ? (
@@ -227,7 +241,10 @@ const EventAnalytics = () => {
             className="inline-flex items-center gap-2 rounded-[14px] border border-[#DCE5F2] bg-white px-4 py-3 text-sm font-semibold text-[#0A2647] shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:border-[#C9D7F3] hover:bg-[#F5F8FF] disabled:cursor-not-allowed disabled:opacity-60"
             title="Refresh insights"
           >
-            <RefreshCw size={16} className={isLoadingInsights ? "animate-spin" : ""} />
+            <RefreshCw
+              size={16}
+              className={isLoadingInsights ? "animate-spin" : ""}
+            />
             {insights ? "Refresh" : "Load"}
           </button>
         </div>
@@ -263,10 +280,14 @@ const EventAnalytics = () => {
           </div>
         ) : insights ? (
           <div className="mt-5 space-y-4">
-            <p className="text-sm leading-7 text-[#5B6B7F]">{insights.summary}</p>
+            <p className="text-sm leading-7 text-[#5B6B7F]">
+              {insights.summary}
+            </p>
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="rounded-[18px] bg-[#F8FAFF] p-4">
-                <h3 className="text-sm font-semibold text-[#0A2647]">Highlights</h3>
+                <h3 className="text-sm font-semibold text-[#0A2647]">
+                  Highlights
+                </h3>
                 <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-[#5B6B7F]">
                   {insights.highlights.map((item) => (
                     <li key={item}>{item}</li>
@@ -274,7 +295,9 @@ const EventAnalytics = () => {
                 </ul>
               </div>
               <div className="rounded-[18px] bg-[#F8FAFF] p-4">
-                <h3 className="text-sm font-semibold text-[#0A2647]">Recommendations</h3>
+                <h3 className="text-sm font-semibold text-[#0A2647]">
+                  Recommendations
+                </h3>
                 <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-[#5B6B7F]">
                   {insights.recommendations.map((item) => (
                     <li key={item}>{item}</li>
@@ -285,7 +308,8 @@ const EventAnalytics = () => {
           </div>
         ) : (
           <p className="mt-5 text-sm text-[#6B7280]">
-            Klik <span className="font-semibold text-[#0A2647]">Load</span> untuk mengambil AI insights.
+            Klik <span className="font-semibold text-[#0A2647]">Load</span>{" "}
+            untuk mengambil AI insights.
           </p>
         )}
       </div>
@@ -357,7 +381,9 @@ const EventAnalytics = () => {
         <div className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)] lg:col-span-2">
           <div className="flex items-center gap-3">
             <BarChart3 size={18} className="text-[#2F5BFF]" />
-            <h2 className="text-lg font-semibold text-[#0A2647]">Registrations Over Time</h2>
+            <h2 className="text-lg font-semibold text-[#0A2647]">
+              Registrations Over Time
+            </h2>
           </div>
           <div className="mt-5 h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -367,22 +393,41 @@ const EventAnalytics = () => {
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="count" name="Registrations" stroke="#2F5BFF" strokeWidth={2} dot={false} />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  name="Registrations"
+                  stroke="#2F5BFF"
+                  strokeWidth={2}
+                  dot={false}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]">
-          <h2 className="text-lg font-semibold text-[#0A2647]">Status Breakdown</h2>
+          <h2 className="text-lg font-semibold text-[#0A2647]">
+            Status Breakdown
+          </h2>
           <div className="mt-5 h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Tooltip />
                 <Legend />
-                <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={70} outerRadius={110} paddingAngle={3}>
+                <Pie
+                  data={statusData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={3}
+                >
                   {statusData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
               </PieChart>
@@ -393,21 +438,30 @@ const EventAnalytics = () => {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-[24px] border border-[#D7E1F0] bg-white p-6 shadow-[0_12px_32px_rgba(10,38,71,0.08)]">
-          <h2 className="text-lg font-semibold text-[#0A2647]">Top Industries</h2>
+          <h2 className="text-lg font-semibold text-[#0A2647]">
+            Top Industries
+          </h2>
           <div className="mt-5 space-y-3">
             {(overview?.topIndustries ?? []).length === 0 ? (
               <p className="text-sm text-[#6B7280]">Belum ada data.</p>
             ) : (
               (overview?.topIndustries ?? []).map((item) => (
-                <div key={item.name} className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4">
+                <div
+                  key={item.name}
+                  className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4"
+                >
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-semibold text-[#0A2647]">{item.name}</p>
-                    <p className="text-sm font-semibold text-[#0A2647]">{formatNumber(item.count)}</p>
+                    <p className="text-sm font-semibold text-[#0A2647]">
+                      {formatNumber(item.count)}
+                    </p>
                   </div>
                   <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#E5E7EB]">
                     <div
                       className="h-2 rounded-full bg-[#2F5BFF]"
-                      style={{ width: `${Math.round((item.count / maxIndustry) * 100)}%` }}
+                      style={{
+                        width: `${Math.round((item.count / maxIndustry) * 100)}%`,
+                      }}
                     />
                   </div>
                 </div>
@@ -423,15 +477,22 @@ const EventAnalytics = () => {
               <p className="text-sm text-[#6B7280]">Belum ada data.</p>
             ) : (
               (overview?.topCities ?? []).map((item) => (
-                <div key={item.name} className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4">
+                <div
+                  key={item.name}
+                  className="rounded-[16px] border border-[#E6ECF7] bg-[#F8FAFF] p-4"
+                >
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-semibold text-[#0A2647]">{item.name}</p>
-                    <p className="text-sm font-semibold text-[#0A2647]">{formatNumber(item.count)}</p>
+                    <p className="text-sm font-semibold text-[#0A2647]">
+                      {formatNumber(item.count)}
+                    </p>
                   </div>
                   <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#E5E7EB]">
                     <div
                       className="h-2 rounded-full bg-[#22C55E]"
-                      style={{ width: `${Math.round((item.count / maxCity) * 100)}%` }}
+                      style={{
+                        width: `${Math.round((item.count / maxCity) * 100)}%`,
+                      }}
                     />
                   </div>
                 </div>
