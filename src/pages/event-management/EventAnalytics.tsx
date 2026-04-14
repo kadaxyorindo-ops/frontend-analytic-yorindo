@@ -136,7 +136,6 @@ const EventAnalytics = () => {
     setIsLoadingInsights(true);
     setInsightsError("");
 
-    const cacheBuster = `ts=${Date.now()}`;
     const result = await api.get<AnalyticsInsights>(
       `/api/v1/analytics/events/${eventId}/insights?refresh=1`,
     );
