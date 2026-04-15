@@ -1,99 +1,101 @@
-# React + TypeScript + Vite
+# Frontend Analytic Yorindo (Yorindo EMS)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The frontend for the **Exhibition / Event Management System (EMS)**: a comprehensive platform for event management, event workspaces (participants + analytics), and public pages for **dynamic form-based participant registration** and **feedback surveys**.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Key Features
 
-## React Compiler
+### Internal Dashboard
+* **OTP Authentication**: OTP request & verification with persistent token/user storage in `localStorage`.
+* **Event Management**: Comprehensive CRUD operations (Create, Read, Update, Delete), including list filtering/sorting and industry master data retrieval.
+* **Event Workspace**:
+    * **Event Details**: Displays public registration links (`/register/:slug`) and form snapshots (version, publication date, field count).
+    * **Participant Management**: List of registrations with status tracking (Pending, Approved, Rejected, Checked-in) and search functionality.
+    * **Event Analytics**: Concise metrics, registration trends, status breakdowns, and top industries/cities (powered by **Recharts**) + optional **AI Insights** (with `sessionStorage` caching).
+    * **Advanced Analytics**: Dedicated views for Survey and Feedback analytics.
+* **Form Builder**:
+    * **Registration Form Builder** (`/events/:eventId/registration-form`): Supports fixed and custom fields, various input types (Text, Textarea, Select, Radio, Checkbox), required fields, and conditional logic.
+    * **Survey Form Builder** (`/events/:eventId/survey-form`): Default ratings + custom question types.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Public Pages
+* **Participant Registration**: `/register/:slug` (dynamic form loading based on slug, dynamic validation, and backend submission) + a **Review Step** at `/register/:slug/review`.
+* **Feedback Survey**: `/feedback` or `/feedback/:slug` (currently **client-only**: data is logged to the console and not yet sent to the server).
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
+* **Core**: React + TypeScript (Vite)
+* **Routing**: React Router
+* **State Management**: Redux Toolkit
+* **Styling**: Tailwind CSS + shadcn/ui + Radix UI
+* **Form Handling**: React Hook Form + Zod
+* **Visualization**: Recharts
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+## Prerequisites
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+* Node.js (Latest LTS version recommended)
+* Running EMS Backend (Default local: `http://localhost:5000`)
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
+---
 
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+## Getting Started (Local Development)
 
-## Local development with ngrok
+1.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
 
-If you need a public URL for the local Vite app, run the development server and then expose it with ngrok:
+2.  **Environment Setup**:
+    * Copy `.env.example` to `.env`
+    * Set the backend base URL:
+        `VITE_API_BASE_URL=http://localhost:5000`
 
-1. Start the Vite server:
+3.  **Run the development server**:
+    ```bash
+    npm run dev
+    ```
 
-```bash
-npm run dev
-```
+4.  **Access the application**:
+    Open `http://localhost:5173` in your browser.
 
-2. In a separate terminal, start ngrok for port `5173`:
+---
 
-```bash
-ngrok http 5173
-```
+## Environment Variables
 
-3. Copy the generated `https://...` forwarding URL from ngrok and use it to access the app externally.
+* **`VITE_API_BASE_URL`**: Used by the fetch wrapper in `src/services/api.ts` for internal dashboard requests. (Fallback: `http://localhost:5000`).
+* **`VITE_API_URL`** (Optional): Used specifically in the public registration page. If unset, it defaults to the relative path `/api/v1/form-builder/slug`.
 
-4. If you need a custom subdomain and your ngrok account supports it:
+> **Dev Proxy Note**: `vite.config.ts` proxies paths starting with `/api` to `http://localhost:5000` to handle relative requests during development.
 
-```bash
-ngrok http -hostname=my-subdomain.ngrok.io 5173
-```
+---
 
-> Make sure ngrok is installed and signed in on your machine before using these commands.
+## Project Structure (Summary)
+
+* `src/pages`: Routing components and page views.
+* `src/components`: Reusable components and UI primitives (`/ui`).
+* `src/services`: API access layer (fetch wrapper + domain services).
+* `src/store`: Redux slices and state logic.
+* `src/types`: TypeScript type definitions.
+* `src/utils`: Helper functions (formatters, chart helpers, error parsing).
+
+---
+
+## Important Notes
+
+* **Authentication**: Tokens are stored in `localStorage` under `ems_auth_token`, and user data under `ems_auth_user`.
+* **Endpoints**: Core auth utilizes `/api/v1/auth/request-otp`, `/api/v1/auth/verify-otp`, and `/api/v1/auth/me`.
+* **Development Status**: Some pages (Global Dashboard, certain non-event pages) are currently wireframes/placeholders.
+* **Documentation**:
+    * `CODEBASE-OVERVIEW.md`: Structure and main components.
+    * `PLAN_USER_MANAGEMENT.md`: Future plans for User CRUD and Permissions.
+    * `BACKEND-EMS-YORINDO-LEARNING-NOTES.md`: Backend integration notes.
+
+---
+
+## Troubleshooting
+
+* **API Connection Failures**: Verify the backend is running and the `VITE_API_BASE_URL` matches. Ensure backend endpoints follow the `/api/v1/*` prefix.
